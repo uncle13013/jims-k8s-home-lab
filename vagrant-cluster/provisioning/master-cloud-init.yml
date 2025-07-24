@@ -1,0 +1,88 @@
+#cloud-config
+
+users:
+  - name: core
+    groups:
+      - sudo
+      - docker
+    ssh_authorized_keys:
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC... # Add your SSH public key here
+
+write_files:
+  - path: /etc/kubernetes/kubeadm-config.yaml
+    permissions: 0644
+    owner: root
+    content: |
+      apiVersion: kubeadm.k8s.io/v1beta3
+      kind: InitConfiguration
+      localAPIEndpoint:
+        advertiseAddress: 0.0.0.0
+        bindPort: 6443
+      nodeRegistration:
+        criSocket: unix:///run/containerd/containerd.sock
+      ---
+      apiVersion: kubeadm.k8s.io/v1beta3
+      kind: ClusterConfiguration
+      kubernetesVersion: v1.28.0
+      controlPlaneEndpoint: "192.168.56.10:6443"
+      networking:
+        serviceSubnet: "10.96.0.0/12"
+        podSubnet: "10.244.0.0/16"
+      apiServer:
+        extraArgs:
+          advertise-address: 0.0.0.0
+          bind-address: 0.0.0.0
+      ---
+      apiVersion: kubelet.config.k8s.io/v1beta1
+      kind: KubeletConfiguration
+      cgroupDriver: systemd
+      containerRuntimeEndpoint: unix:///run/containerd/containerd.sock
+
+  - path: /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+    permissions: 0644
+    owner: root
+    content: |
+      [Service]
+      Environment="KUBELET_KUBECONFIG_ARGS=--bootstrap-kubeconfig=/etc/kubernetes/bootstrap-kubelet.conf --kubeconfig=/etc/kubernetes/kubelet.conf"
+      Environment="KUBELET_CONFIG_ARGS=--config=/var/lib/kubelet/config.yaml"
+      Environment="KUBELET_KUBEADM_ARGS=--container-runtime-endpoint=unix:///run/containerd/containerd.sock --pod-infra-container-image=registry.k8s.io/pause:3.9"
+      Environment="KUBELET_EXTRA_ARGS="
+      ExecStart=
+      ExecStart=/usr/bin/kubelet $KUBELET_KUBECONFIG_ARGS $KUBELET_CONFIG_ARGS $KUBELET_KUBEADM_ARGS $KUBELET_EXTRA_ARGS
+
+  - path: /etc/containerd/config.toml
+    permissions: 0644
+    owner: root
+    content: |
+      version = 2
+      [plugins]
+        [plugins."io.containerd.grpc.v1.cri"]
+          sandbox_image = "registry.k8s.io/pause:3.9"
+          [plugins."io.containerd.grpc.v1.cri".containerd]
+            [plugins."io.containerd.grpc.v1.cri".containerd.runtimes]
+              [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc]
+                runtime_type = "io.containerd.runc.v2"
+                [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
+                  SystemdCgroup = true
+
+systemd:
+  units:
+    - name: containerd.service
+      enabled: true
+    - name: kubelet.service
+      enabled: true
+    - name: setup-kubernetes.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Setup Kubernetes Master Node
+        After=network-online.target containerd.service
+        Wants=network-online.target
+        
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        ExecStart=/opt/bin/setup-kubernetes-master.sh
+        
+        [Install]
+        WantedBy=multi-user.target

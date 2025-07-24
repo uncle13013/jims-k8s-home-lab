@@ -1,0 +1,68 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  # Use Flatcar Linux
+  config.vm.box = "flatcar-stable"
+  config.vm.box_url = "https://stable.release.flatcar-linux.net/amd64-usr/current/flatcar_production_vagrant.box"
+  
+  # Disable automatic box update checking
+  config.vm.box_check_update = false
+  
+  # Increase boot timeout
+  config.vm.boot_timeout = 600
+  
+  # Configure SSH settings
+  config.ssh.username = "core"
+  config.ssh.insert_key = false
+  
+  # Configure VirtualBox provider
+  config.vm.provider "virtualbox" do |vb|
+    vb.gui = false
+    vb.linked_clone = true
+    # Enable nested virtualization for container runtimes
+    vb.customize ["modifyvm", :id, "--nested-hw-virt", "on"]
+    # Use default paravirtualization (removing incorrect KVM setting)
+    vb.customize ["modifyvm", :id, "--paravirtprovider", "default"]
+  end
+
+  # Worker Node 3
+  config.vm.define "worker-3" do |worker3|
+    worker3.vm.hostname = "worker-3"
+    worker3.vm.network "public_network", ip: "192.168.0.244", bridge: "wlp2s0"
+    
+    worker3.vm.provider "virtualbox" do |vb|
+      vb.name = "k8s-worker-3"
+      vb.memory = "2048"
+      vb.cpus = 2
+      unless File.exist?('./worker-3-disk.vdi')
+        vb.customize ['createhd', '--filename', './worker-3-disk.vdi', '--size', 20 * 1024]
+      end
+      vb.customize ['storageattach', :id, '--storagectl', 'IDE Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', './worker-3-disk.vdi']
+    end
+    
+    # Temporarily disable provisioning to test basic boot
+    # worker3.vm.provision "file", source: "../provisioning/worker-cloud-init.yml", destination: "/tmp/cloud-init.yml"
+    # worker3.vm.provision "shell", path: "../provisioning/setup-flatcar.sh", args: ["worker"]
+  end
+
+  # Worker Node 4
+  config.vm.define "worker-4" do |worker4|
+    worker4.vm.hostname = "worker-4"
+    worker4.vm.network "public_network", ip: "192.168.0.245", bridge: "wlp2s0"
+    
+    worker4.vm.provider "virtualbox" do |vb|
+      vb.name = "k8s-worker-4"
+      vb.memory = "2048"
+      vb.cpus = 2
+      unless File.exist?('./worker-4-disk.vdi')
+        vb.customize ['createhd', '--filename', './worker-4-disk.vdi', '--size', 20 * 1024]
+      end
+      vb.customize ['storageattach', :id, '--storagectl', 'IDE Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', './worker-4-disk.vdi']
+    end
+    
+    # Temporarily disable provisioning to test basic boot
+    # worker4.vm.provision "file", source: "../provisioning/worker-cloud-init.yml", destination: "/tmp/cloud-init.yml"
+    # worker4.vm.provision "shell", path: "../provisioning/setup-flatcar.sh", args: ["worker"]
+  end
+end

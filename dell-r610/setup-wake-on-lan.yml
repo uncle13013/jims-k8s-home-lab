@@ -1,0 +1,51 @@
+---
+- name: Set up Wake-on-LAN on Dell R610
+  hosts: dragon
+  become: true
+  tasks:
+    - name: Check if ethtool is installed
+      ansible.builtin.package:
+        name: ethtool
+        state: present
+
+    - name: Enable Wake-on-LAN on eno1 interface
+      ansible.builtin.command:
+        cmd: ethtool -s eno1 wol g
+      register: wol_enable
+      changed_when: wol_enable.rc == 0
+
+    - name: Create systemd service for persistent WOL
+      ansible.builtin.copy:
+        content: |
+          [Unit]
+          Description=Enable Wake-on-LAN
+          After=network.target
+
+          [Service]
+          Type=oneshot
+          ExecStart=/usr/sbin/ethtool -s eno1 wol g
+          RemainAfterExit=yes
+
+          [Install]
+          WantedBy=multi-user.target
+        dest: /etc/systemd/system/wake-on-lan.service
+        mode: '0644'
+        owner: root
+        group: root
+
+    - name: Enable and start wake-on-lan service
+      ansible.builtin.systemd:
+        name: wake-on-lan.service
+        enabled: true
+        state: started
+        daemon_reload: true
+
+    - name: Verify WOL is enabled
+      ansible.builtin.command:
+        cmd: ethtool eno1
+      register: wol_status
+      changed_when: false
+
+    - name: Display WOL status
+      ansible.builtin.debug:
+        msg: "{{ wol_status.stdout_lines | select('match', '.*Wake-on.*') | list }}"

@@ -1,0 +1,63 @@
+---
+- name: Set up Kali Linux KVM VM on Dell R610
+  hosts: dragon
+  become: true
+  collections:
+    - community.libvirt
+  tasks:
+    - name: Install required Python modules
+      ansible.builtin.package:
+        name:
+          - python3-lxml
+        state: present
+
+    - name: Ensure Kali Linux ISO is present
+      ansible.builtin.get_url:
+        url: https://cdimage.kali.org/kali-2025.2/kali-linux-2025.2-installer-amd64.iso
+        dest: /var/lib/libvirt/images/kali-linux-2025.2-installer-amd64.iso
+        mode: '0644'
+
+    - name: Create disk image for Kali VM
+      ansible.builtin.command:
+        cmd: qemu-img create -f qcow2 /var/lib/libvirt/images/kali.qcow2 20G
+      args:
+        creates: /var/lib/libvirt/images/kali.qcow2
+
+    - name: Create Kali Linux VM using libvirt domain XML
+      community.libvirt.virt:
+        name: kali-linux
+        command: define
+        xml: |
+          <domain type='kvm'>
+            <name>kali-linux</name>
+            <memory unit='MiB'>4096</memory>
+            <vcpu>2</vcpu>
+            <os>
+              <type arch='x86_64' machine='pc'>hvm</type>
+              <boot dev='cdrom'/>
+              <boot dev='hd'/>
+            </os>
+            <devices>
+              <disk type='file' device='disk'>
+                <driver name='qemu' type='qcow2'/>
+                <source file='/var/lib/libvirt/images/kali.qcow2'/>
+                <target dev='vda' bus='virtio'/>
+              </disk>
+              <disk type='file' device='cdrom'>
+                <driver name='qemu' type='raw'/>
+                <source file='/var/lib/libvirt/images/kali-linux-2025.2-installer-amd64.iso'/>
+                <target dev='hdc' bus='ide'/>
+                <readonly/>
+              </disk>
+              <interface type='network'>
+                <source network='default'/>
+                <model type='virtio'/>
+              </interface>
+              <graphics type='vnc' port='-1' listen='0.0.0.0'/>
+            </devices>
+          </domain>
+
+    - name: Start Kali Linux VM
+      community.libvirt.virt:
+        name: kali-linux
+        state: running

@@ -1,0 +1,42 @@
+---
+all:
+  children:
+    k8s_cluster:
+      children:
+        masters:
+          hosts:
+            master-1:
+              ansible_host: 192.168.0.240
+              ansible_user: core
+              ansible_ssh_private_key_file: ~/.ssh/vagrant_key_rsa
+              ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+            master-2:
+              ansible_host: 192.168.0.243
+              ansible_user: core
+              ansible_ssh_private_key_file: ~/.ssh/vagrant_key_rsa
+              ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+        workers:
+          hosts:
+            worker-1:
+              ansible_host: 192.168.0.241
+              ansible_user: core
+              ansible_ssh_private_key_file: ~/.ssh/vagrant_key_rsa
+              ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+            worker-2:
+              ansible_host: 192.168.0.242
+              ansible_user: core
+              ansible_ssh_private_key_file: ~/.ssh/vagrant_key_rsa
+              ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+            worker-3:
+              ansible_host: 192.168.0.244
+              ansible_user: core
+              ansible_ssh_private_key_file: ~/.ssh/vagrant_key_rsa
+              ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+            worker-4:
+              ansible_host: 192.168.0.245
+              ansible_user: core
+              ansible_ssh_private_key_file: ~/.ssh/vagrant_key_rsa
+              ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+  vars:
+    # Flatcar Linux doesn't have Python by default, so we'll use raw commands initially
+    ansible_python_interpreter: auto_silent

@@ -1,0 +1,28 @@
+---
+- name: Flatcar Linux connectivity test
+  hosts: k8s_cluster
+  gather_facts: false
+  tasks:
+    - name: Test raw connectivity with basic commands
+      raw: |
+        echo "=== Node Information ==="
+        echo "Hostname: $(hostname)"
+        echo "IP Address: $(ip route get 1.1.1.1 | awk '{print $7}' | head -1)"
+        echo "Uptime: $(uptime)"
+        echo "Kernel: $(uname -r)"
+        echo "Architecture: $(uname -m)"
+        echo "Memory: $(free -h | grep 'Mem:' | awk '{print $2}')"
+        echo "Docker status: $(systemctl is-active docker)"
+        echo "Available disk space:"
+        df -h / | tail -1
+        echo "=== Network Interfaces ==="
+        ip addr show | grep -E '^[0-9]+:|inet ' | head -10
+      register: node_info
+      changed_when: false
+
+    - name: Display node information
+      debug:
+        msg: |
+          ✅ {{ inventory_hostname }} ({{ ansible_host }}) connectivity successful!
+          
+          {{ node_info.stdout }}

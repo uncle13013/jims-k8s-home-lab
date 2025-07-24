@@ -1,0 +1,18 @@
+---
+- name: Quick connectivity test for all nodes  
+  hosts: k8s_cluster
+  gather_facts: false
+  tasks:
+    - name: Ping test
+      ping:
+      register: ping_result
+
+    - name: Show connectivity status
+      debug:
+        msg: "✅ {{ inventory_hostname }} ({{ ansible_host }}) is reachable"
+      when: ping_result is succeeded
+
+    - name: Show failure status  
+      debug:
+        msg: "❌ {{ inventory_hostname }} ({{ ansible_host }}) is unreachable"
+      when: ping_result is failed

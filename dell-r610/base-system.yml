@@ -1,0 +1,46 @@
+---
+- name: Ensure base system dependencies for KVM and Ansible automation
+  hosts: dragon
+  become: true
+  tasks:
+    - name: Install KVM and virtualization packages
+      apt:
+        name:
+          - qemu-kvm
+          - libvirt-daemon-system
+          - libvirt-clients
+          - bridge-utils
+          - virtinst
+          - virt-manager
+        state: present
+        update_cache: yes
+
+  - name: Ensure user is in libvirt and kvm groups
+    user:
+      name: "{{ ansible_user }}"
+      groups: libvirt,kvm
+      append: yes
+
+  - name: Install Ansible
+    apt:
+      name: ansible
+      state: present
+      update_cache: yes
+
+  - name: Install pip (for Ansible collections)
+    apt:
+      name: python3-pip
+      state: present
+      update_cache: yes
+
+    - name: Install community.libvirt collection
+      ansible.builtin.command:
+        cmd: ansible-galaxy collection install community.libvirt
+      args:
+        creates: /home/{{ ansible_user }}/.ansible/collections/ansible_collections/community/libvirt
+
+    - name: Ensure wget is installed
+      apt:
+        name: wget
+        state: present
+        update_cache: yes

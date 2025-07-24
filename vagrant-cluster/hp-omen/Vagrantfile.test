@@ -1,0 +1,31 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  # Use a more compatible Ubuntu box for testing
+  config.vm.box = "ubuntu/jammy64"
+  
+  # Increase boot timeout
+  config.vm.boot_timeout = 600
+  
+  # Configure VirtualBox provider
+  config.vm.provider "virtualbox" do |vb|
+    vb.gui = false
+    vb.linked_clone = true
+    vb.customize ["modifyvm", :id, "--ioapic", "on"]
+    vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+    vb.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
+  end
+
+  # Test Node
+  config.vm.define "test-node" do |test|
+    test.vm.hostname = "test-node"
+    test.vm.network "private_network", ip: "192.168.56.100"
+    
+    test.vm.provider "virtualbox" do |vb|
+      vb.name = "test-node"
+      vb.memory = "2048"
+      vb.cpus = 2
+    end
+  end
+end

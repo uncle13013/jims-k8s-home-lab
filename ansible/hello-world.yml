@@ -1,0 +1,43 @@
+---
+- name: Hello World - Test connectivity to all Kubernetes nodes
+  hosts: k8s_cluster
+  gather_facts: true
+  tasks:
+    - name: Ping all nodes
+      ping:
+      register: ping_result
+
+    - name: Display hostname and basic info
+      debug:
+        msg: |
+          Node: {{ inventory_hostname }}
+          IP: {{ ansible_host }}
+          Hostname: {{ ansible_hostname }}
+          OS: {{ ansible_distribution }} {{ ansible_distribution_version }}
+          Kernel: {{ ansible_kernel }}
+          Architecture: {{ ansible_architecture }}
+          Memory: {{ ansible_memtotal_mb }}MB
+          CPU cores: {{ ansible_processor_vcpus }}
+
+    - name: Check Docker status
+      systemd:
+        name: docker
+      register: docker_status
+      ignore_errors: true
+
+    - name: Display Docker status
+      debug:
+        msg: "Docker service status: {{ docker_status.status.ActiveState | default('not found') }}"
+
+    - name: Show network interfaces
+      debug:
+        msg: "Network interfaces: {{ ansible_interfaces }}"
+
+    - name: Check disk space
+      shell: df -h /
+      register: disk_space
+      changed_when: false
+
+    - name: Display disk usage
+      debug:
+        msg: "Root filesystem usage: {{ disk_space.stdout_lines[1] }}"
