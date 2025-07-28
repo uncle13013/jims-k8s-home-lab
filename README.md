@@ -9,36 +9,36 @@ This is a **6-node Kubernetes cluster** running across two physical machines usi
 
 ### Current Infrastructure Status
 - ✅ **6-node Kubernetes cluster** fully deployed and operational
-- ✅ **High Availability control plane** with 2 master nodes across different machines
+- ✅ **Single master control plane** on always-available dedicated host
 - ✅ **Ansible automation** for cluster management and configuration
 - ✅ **Bridged networking** enabling direct LAN access to all nodes
 - ✅ **Infrastructure as Code** with version-controlled Vagrant configurations
 
 ## 🖥️ Physical Infrastructure
 
-### HP Omen Laptop (Primary Host)
-- **Role**: Primary Kubernetes host
-- **Nodes**: master-1 (4GB), master-2 (4GB), worker-1 (2GB), worker-2 (2GB)
+### HP Omen Laptop (Mobile Development Host)
+- **Role**: Mobile Kubernetes development environment
+- **Nodes**: worker-1 (2GB), worker-2 (2GB), worker-3 (2GB), worker-4 (2GB)
 - **Network**: Intel Wi-Fi 6E AX211 160MHz adapter with bridged networking
 - **IPs**: 192.168.0.240-243
 
-### Toshiba Satellite S55 (Secondary Host)  
-- **Role**: Secondary Kubernetes host for HA and scale
-- **Nodes**: worker-3 (2GB), worker-4 (2GB)
+### Toshiba Satellite S55 (Always-On Infrastructure Host)  
+- **Role**: Dedicated Kubernetes infrastructure and always-on services
+- **Nodes**: master-1 (4GB), worker-5 (6GB)
 - **Network**: wlp2s0 wireless adapter with bridged networking
 - **IPs**: 192.168.0.244-245
 
 ### Network Topology
 ```
 LAN (192.168.0.0/24)
-├── HP Omen
-│   ├── master-1  (192.168.0.240)
-│   ├── worker-1  (192.168.0.241) 
-│   ├── worker-2  (192.168.0.242)
-│   └── master-2  (192.168.0.243)
-└── Toshiba Satellite
-    ├── worker-3  (192.168.0.244)
-    └── worker-4  (192.168.0.245)
+├── HP Omen (Mobile Development)
+│   ├── worker-1  (192.168.0.240) - 2GB
+│   ├── worker-2  (192.168.0.241) - 2GB
+│   ├── worker-3  (192.168.0.242) - 2GB
+│   └── worker-4  (192.168.0.243) - 2GB
+└── Toshiba Satellite (Always-On Infrastructure)
+    ├── master-1  (192.168.0.244) - 4GB (Control Plane)
+    └── worker-5  (192.168.0.245) - 6GB (Heavy-duty Always-On)
 ```
 
 ## 🛠️ Technology Stack
@@ -119,7 +119,7 @@ LAN (192.168.0.0/24)
 ### Phase 1: Kubernetes Installation (In Progress)
 - [ ] Docker runtime activation across all nodes
 - [ ] Kubernetes components installation (kubeadm, kubelet, kubectl)
-- [ ] High-availability control plane initialization
+- [ ] Single master control plane initialization
 - [ ] Worker node joining and cluster validation
 
 ### Phase 2: Networking & Storage
@@ -138,14 +138,14 @@ LAN (192.168.0.0/24)
 
 | Node | Machine | Role | CPU | RAM | Disk | IP |
 |------|---------|------|-----|-----|------|----|
-| master-1 | HP Omen | Control Plane | 2 | 4GB | 20GB | 192.168.0.240 |
-| worker-1 | HP Omen | Worker | 2 | 2GB | 20GB | 192.168.0.241 |
-| worker-2 | HP Omen | Worker | 2 | 2GB | 20GB | 192.168.0.242 |
-| master-2 | HP Omen | Control Plane | 2 | 4GB | 20GB | 192.168.0.243 |
-| worker-3 | Toshiba | Worker | 2 | 2GB | 20GB | 192.168.0.244 |
-| worker-4 | Toshiba | Worker | 2 | 2GB | 20GB | 192.168.0.245 |
+| worker-1 | HP Omen | Worker | 2 | 2GB | 20GB | 192.168.0.240 |
+| worker-2 | HP Omen | Worker | 2 | 2GB | 20GB | 192.168.0.241 |
+| worker-3 | HP Omen | Worker | 2 | 2GB | 20GB | 192.168.0.242 |
+| worker-4 | HP Omen | Worker | 2 | 2GB | 20GB | 192.168.0.243 |
+| master-1 | Toshiba | Control Plane | 2 | 4GB | 20GB | 192.168.0.244 |
+| worker-5 | Toshiba | Heavy-duty Worker | 2 | 6GB | 20GB | 192.168.0.245 |
 
-**Total Resources**: 12 vCPUs, 16GB RAM, 120GB Storage
+**Total Resources**: 12 vCPUs, 18GB RAM, 120GB Storage
 
 ## 🔧 Key Features
 
@@ -156,10 +156,10 @@ LAN (192.168.0.0/24)
 - **Automated provisioning** with minimal manual intervention
 
 ### High Availability Design
-- **Multi-master setup** for control plane redundancy
-- **Cross-machine distribution** for fault tolerance
+- **Single master architecture** optimized for home lab reliability
+- **Always-available control plane** on dedicated stable host
 - **Static IP allocation** for predictable networking
-- **Load balancing ready** architecture
+- **Cross-machine workload distribution** for resource optimization
 
 ### Security & Compliance
 - **Immutable OS** with Flatcar Linux

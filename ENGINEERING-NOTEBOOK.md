@@ -39,7 +39,7 @@
 ## Architecture Decisions
 
 ### AD-001: VirtualBox over KVM/libvirt
-**Date**: 2025-01-15  
+**Date**: 2025-07-15  
 **Decision**: Use VirtualBox instead of KVM for virtualization
 
 **Context**: 
@@ -61,8 +61,63 @@
 
 **Validation**: Successfully bridged across `Intel(R) Wi-Fi 6E AX211 160MHz` (HP Omen) and `wlp2s0` (Toshiba Satellite)
 
+### AD-005: Architecture Restructure for Operational Reliability
+**Date**: 2025-07-28  
+**Decision**: Restructure cluster to single master on dedicated always-on host with optimized worker distribution
+
+**Context**: 
+- HP Omen laptop frequently taken offline (mobile use, shutdown cycles)
+- Need always-available cluster control plane
+- Toshiba Satellite dedicated exclusively to cluster (16GB RAM available)
+- Requirement for persistent services (network monitoring, torrent client)
+
+**Physical Hardware Assessment**:
+```
+Toshiba Satellite S55 Specifications:
+- CPU: Intel Core i7-4700MQ @ 2.40GHz (4 cores, 8 threads)  
+- RAM: 16GB total (12GB available after host OS)
+- Current allocation: 4GB used (2x 2GB worker VMs)
+- Available capacity: ~8GB additional headroom
+```
+
+**New Architecture**:
+```
+HP Omen (Mobile Development):     worker-1, worker-2, worker-3, worker-4 (2GB each)
+Toshiba (Always-On Infrastructure): master-1 (4GB), worker-5 (6GB)
+```
+
+**Rationale**:
+- **Operational stability**: Control plane always available regardless of HP Omen status
+- **Resource optimization**: Better utilization of Toshiba's 16GB capacity
+- **Service isolation**: Always-on worker (worker-5) perfect for persistent services
+- **Development flexibility**: 4 mobile workers for development/testing workflows
+- **Simplified HA**: Single master reduces complexity while meeting home lab reliability needs
+
+**Trade-offs**:
+- ❌ **No master redundancy**: Single point of failure for control plane
+- ❌ **Less "production-like"**: Most production clusters use multiple masters
+- ✅ **Operational reliability**: Master always available on stable host
+- ✅ **Resource efficiency**: Better RAM utilization (18GB vs 16GB total)
+- ✅ **Service continuity**: Always-on worker for persistent workloads
+- ✅ **Cost optimization**: Single master reduces resource overhead
+
+**Implementation Details**:
+- **Master placement**: Toshiba 192.168.0.244 (4GB RAM allocation)
+- **Heavy-duty worker**: Toshiba 192.168.0.245 (6GB RAM allocation)  
+- **Mobile workers**: HP Omen 192.168.0.240-243 (2GB each)
+- **Total resources**: 6 nodes, 18GB RAM, 12 vCPUs
+- **Host headroom**: 2GB on Toshiba, 4GB+ on HP Omen
+
+**Validation Criteria**:
+- Control plane accessible 24/7 from development environment
+- Worker-5 capable of running monitoring stack + persistent services
+- Mobile workers sufficient for development and testing workloads
+- Cluster survives HP Omen offline cycles
+
+**Validation**: Successfully bridged across `Intel(R) Wi-Fi 6E AX211 160MHz` (HP Omen) and `wlp2s0` (Toshiba Satellite)
+
 ### AD-002: Flatcar Linux over Ubuntu/CentOS
-**Date**: 2025-01-16  
+**Date**: 2025-07-16  
 **Decision**: Use Flatcar Linux for all Kubernetes nodes
 
 **Context**:
@@ -88,7 +143,7 @@
 **Validation**: All 6 nodes running stable on Flatcar 4230.2.1 with kernel 6.6.95-flatcar
 
 ### AD-003: Static IP Assignment
-**Date**: 2025-01-18  
+**Date**: 2025-07-18  
 **Decision**: Use static IP addresses (192.168.0.240-245) instead of DHCP
 
 **Context**:
@@ -111,7 +166,7 @@ config.vm.network "public_network", ip: "192.168.0.240", bridge: "Intel(R) Wi-Fi
 **Validation**: All nodes accessible on LAN, no IP conflicts detected
 
 ### AD-004: WSL2 Mirrored Networking
-**Date**: 2025-01-20  
+**Date**: 2025-07-20  
 **Decision**: Enable WSL2 mirrored networking mode for Ansible access
 
 **Context**:
@@ -142,7 +197,7 @@ networkingMode=mirrored
 ## Technical Challenges & Solutions
 
 ### TC-001: Flatcar Python Interpreter Issue
-**Date**: 2025-01-22  
+**Date**: 2025-07-22  
 **Challenge**: Ansible fails with "No Python interpreter found" on Flatcar Linux
 
 **Error**:
@@ -175,7 +230,7 @@ ssh core@192.168.0.240 'which python python3 python2'
 **Outcome**: Successfully automated Flatcar management without Python dependency
 
 ### TC-002: SSH Key Permissions
-**Date**: 2025-01-19  
+**Date**: 2025-07-19  
 **Challenge**: SSH connection failures due to key permission issues
 
 **Error**:
@@ -198,7 +253,7 @@ chmod 600 ~/.ssh/vagrant_key_*
 **Lesson Learned**: WSL2 respects Unix permissions only on Linux filesystem, not Windows mounts
 
 ### TC-003: Bridge Interface Name Discovery
-**Date**: 2025-01-17  
+**Date**: 2025-07-17  
 **Challenge**: Different WiFi adapter names across machines
 
 **Context**:
@@ -226,7 +281,7 @@ config.vm.network "public_network", ip: "192.168.0.244", bridge: "wlp2s0"
 **Validation**: Both machines successfully bridge to LAN with proper interface names
 
 ### TC-004: VirtualBox VM Boot Timeouts
-**Date**: 2025-01-16  
+**Date**: 2025-07-16  
 **Challenge**: Flatcar VMs timing out during initial boot (300s default)
 
 **Symptoms**:
@@ -253,7 +308,7 @@ vb.customize ["modifyvm", :id, "--paravirtprovider", "default"]
 ## Infrastructure Evolution
 
 ### Phase 1: Dell R610 Server (Deprecated)
-**Duration**: 2024-12-15 to 2025-01-10  
+**Duration**: 2024-12-15 to 2025-07-10  
 **Architecture**: Single physical server with KVM virtualization
 
 **Achievements**:
@@ -271,21 +326,27 @@ vb.customize ["modifyvm", :id, "--paravirtprovider", "default"]
 **Migration Decision**: Cost and environmental factors outweighed performance benefits
 
 ### Phase 2: Multi-Laptop Cluster (Current)
-**Duration**: 2025-01-10 to Present  
+**Duration**: 2025-07-10 to Present  
 **Architecture**: Distributed VMs across HP Omen and Toshiba Satellite
 
 **Improvements**:
 - ✅ **Power efficiency**: ~50W total consumption (2 laptops)
-- ✅ **Physical redundancy**: HA across different machines
+- ✅ **Physical redundancy**: Distributed across different machines
 - ✅ **Noise reduction**: Silent operation in home environment
 - ✅ **Mobility**: Can relocate cluster components if needed
 
-**New Challenges**:
-- ⚠️ **Network coordination**: Cross-machine networking complexity
-- ⚠️ **Resource constraints**: Limited RAM per physical host
-- ⚠️ **Dependency management**: Both machines must be operational
+**Evolution 2.1: Operational Reliability Optimization (2025-07-28)**:
+- **Problem**: HP Omen mobile usage caused control plane downtime
+- **Solution**: Single master on always-on Toshiba Satellite
+- **Resource redistribution**: 4x2GB mobile workers + 1x6GB always-on worker
+- **Result**: 24/7 cluster availability with optimized resource allocation
 
-**Validation**: Successfully running 6-node cluster with acceptable performance
+**Current Challenges**:
+- ⚠️ **Single master**: No control plane redundancy (acceptable for home lab)
+- ⚠️ **Network coordination**: Cross-machine networking complexity  
+- ⚠️ **Host dependency**: Toshiba must remain operational for cluster function
+
+**Validation**: Successfully running 6-node cluster with operational stability and resource optimization
 
 ---
 
@@ -349,7 +410,7 @@ vb.customize ["modifyvm", :id, "--paravirtprovider", "default"]
 ## Performance & Optimization
 
 ### Resource Utilization Baseline
-**Measurement Date**: 2025-01-22  
+**Measurement Date**: 2025-07-22  
 **Cluster State**: 6 nodes running, Docker inactive, no Kubernetes workloads
 
 | Metric | Master Nodes | Worker Nodes | Total Cluster |
@@ -521,8 +582,9 @@ vb.memory = "2048"  # Workers
 
 | Date | Version | Changes | Author |
 |------|---------|---------|---------|
-| 2025-01-22 | 1.0 | Initial engineering notebook creation | Jim |
-| 2025-01-22 | 1.1 | Added Ansible raw module solution documentation | Jim |
+| 2025-07-22 | 1.0 | Initial engineering notebook creation | Jim |
+| 2025-07-22 | 1.1 | Added Ansible raw module solution documentation | Jim |
+| 2025-07-28 | 1.2 | Architecture restructure: Single master + resource optimization | Jim |
 
 ---
 

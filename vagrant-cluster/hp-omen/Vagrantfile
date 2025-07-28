@@ -31,47 +31,10 @@ Vagrant.configure("2") do |config|
     vb.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
   end
 
-  # Master Node 1 (Primary control plane)
-  config.vm.define "master-1" do |master1|
-    master1.vm.hostname = "master-1"
-    master1.vm.network "public_network", ip: "192.168.0.240", bridge: "Intel(R) Wi-Fi 6E AX211 160MHz"
-    
-    master1.vm.provider "virtualbox" do |vb|
-      vb.name = "k8s-master-1"
-      vb.memory = "4096"
-      vb.cpus = 2
-      # Temporarily remove extra disk to simplify troubleshooting
-      # unless File.exist?('./master-1-disk.vdi')
-      #   vb.customize ['createhd', '--filename', './master-1-disk.vdi', '--size', 20 * 1024]
-      # end
-      # vb.customize ['storageattach', :id, '--storagectl', 'IDE Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', './master-1-disk.vdi']
-    end
-    
-    # Temporarily disable provisioning to test basic boot
-    # master1.vm.provision "file", source: "../provisioning/master-cloud-init.yml", destination: "/tmp/cloud-init.yml"
-    # master1.vm.provision "shell", path: "../provisioning/setup-flatcar.sh", args: ["master"]
-  end
-
-  # Master Node 2 (Secondary control plane)
-  config.vm.define "master-2" do |master2|
-    master2.vm.hostname = "master-2"
-    master2.vm.network "public_network", ip: "192.168.0.243", bridge: "Intel(R) Wi-Fi 6E AX211 160MHz"
-    
-    master2.vm.provider "virtualbox" do |vb|
-      vb.name = "k8s-master-2"
-      vb.memory = "4096"
-      vb.cpus = 2
-    end
-    
-    # Temporarily disable provisioning to test basic boot
-    # master2.vm.provision "file", source: "../provisioning/master-cloud-init.yml", destination: "/tmp/cloud-init.yml"
-    # master2.vm.provision "shell", path: "../provisioning/setup-flatcar.sh", args: ["master"]
-  end
-
   # Worker Node 1
   config.vm.define "worker-1" do |worker1|
     worker1.vm.hostname = "worker-1"
-    worker1.vm.network "public_network", ip: "192.168.0.241", bridge: "Intel(R) Wi-Fi 6E AX211 160MHz"
+    worker1.vm.network "public_network", ip: "192.168.0.240", bridge: "Intel(R) Wi-Fi 6E AX211 160MHz"
     
     worker1.vm.provider "virtualbox" do |vb|
       vb.name = "k8s-worker-1"
@@ -83,14 +46,15 @@ Vagrant.configure("2") do |config|
       vb.customize ['storageattach', :id, '--storagectl', 'IDE Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', './worker-1-disk.vdi']
     end
     
-    worker1.vm.provision "file", source: "../provisioning/worker-cloud-init.yml", destination: "/tmp/cloud-init.yml"
-    worker1.vm.provision "shell", path: "../provisioning/setup-flatcar.sh", args: ["worker"]
+    # Temporarily disable provisioning to test basic boot
+    # worker1.vm.provision "file", source: "../provisioning/worker-cloud-init.yml", destination: "/tmp/cloud-init.yml"
+    # worker1.vm.provision "shell", path: "../provisioning/setup-flatcar.sh", args: ["worker"]
   end
 
   # Worker Node 2
   config.vm.define "worker-2" do |worker2|
     worker2.vm.hostname = "worker-2"
-    worker2.vm.network "public_network", ip: "192.168.0.242", bridge: "Intel(R) Wi-Fi 6E AX211 160MHz"
+    worker2.vm.network "public_network", ip: "192.168.0.241", bridge: "Intel(R) Wi-Fi 6E AX211 160MHz"
     
     worker2.vm.provider "virtualbox" do |vb|
       vb.name = "k8s-worker-2"
@@ -102,7 +66,48 @@ Vagrant.configure("2") do |config|
       vb.customize ['storageattach', :id, '--storagectl', 'IDE Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', './worker-2-disk.vdi']
     end
     
-    worker2.vm.provision "file", source: "../provisioning/worker-cloud-init.yml", destination: "/tmp/cloud-init.yml"
-    worker2.vm.provision "shell", path: "../provisioning/setup-flatcar.sh", args: ["worker"]
+    # Temporarily disable provisioning to test basic boot
+    # worker2.vm.provision "file", source: "../provisioning/worker-cloud-init.yml", destination: "/tmp/cloud-init.yml"
+    # worker2.vm.provision "shell", path: "../provisioning/setup-flatcar.sh", args: ["worker"]
+  end
+
+  # Worker Node 3
+  config.vm.define "worker-3" do |worker3|
+    worker3.vm.hostname = "worker-3"
+    worker3.vm.network "public_network", ip: "192.168.0.242", bridge: "Intel(R) Wi-Fi 6E AX211 160MHz"
+    
+    worker3.vm.provider "virtualbox" do |vb|
+      vb.name = "k8s-worker-3"
+      vb.memory = "2048"
+      vb.cpus = 2
+      unless File.exist?('./worker-3-disk.vdi')
+        vb.customize ['createhd', '--filename', './worker-3-disk.vdi', '--size', 20 * 1024]
+      end
+      vb.customize ['storageattach', :id, '--storagectl', 'IDE Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', './worker-3-disk.vdi']
+    end
+    
+    # Temporarily disable provisioning to test basic boot
+    # worker3.vm.provision "file", source: "../provisioning/worker-cloud-init.yml", destination: "/tmp/cloud-init.yml"
+    # worker3.vm.provision "shell", path: "../provisioning/setup-flatcar.sh", args: ["worker"]
+  end
+
+  # Worker Node 4
+  config.vm.define "worker-4" do |worker4|
+    worker4.vm.hostname = "worker-4"
+    worker4.vm.network "public_network", ip: "192.168.0.243", bridge: "Intel(R) Wi-Fi 6E AX211 160MHz"
+    
+    worker4.vm.provider "virtualbox" do |vb|
+      vb.name = "k8s-worker-4"
+      vb.memory = "2048"
+      vb.cpus = 2
+      unless File.exist?('./worker-4-disk.vdi')
+        vb.customize ['createhd', '--filename', './worker-4-disk.vdi', '--size', 20 * 1024]
+      end
+      vb.customize ['storageattach', :id, '--storagectl', 'IDE Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', './worker-4-disk.vdi']
+    end
+    
+    # Temporarily disable provisioning to test basic boot
+    # worker4.vm.provision "file", source: "../provisioning/worker-cloud-init.yml", destination: "/tmp/cloud-init.yml"
+    # worker4.vm.provision "shell", path: "../provisioning/setup-flatcar.sh", args: ["worker"]
   end
 end
