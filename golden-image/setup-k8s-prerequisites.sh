@@ -13,29 +13,36 @@ log() {
 
 log "Starting Kubernetes prerequisites setup..."
 
-# 1. Configure Docker
-log "Configuring Docker daemon..."
-sudo mkdir -p /etc/docker
-sudo tee /etc/docker/daemon.json > /dev/null <<EOF
-{
-  "exec-opts": ["native.cgroupdriver=systemd"],
-  "log-driver": "json-file",
-  "log-opts": {
-    "max-size": "100m",
-    "max-file": "3"
-  },
-  "storage-driver": "overlay2",
-  "iptables": false
-}
+# 1. Configure containerd for Kubernetes
+log "Configuring containerd for Kubernetes..."
+
+# Ensure containerd is enabled and running
+sudo systemctl enable containerd
+sudo systemctl start containerd
+
+# Configure containerd for Kubernetes (enable SystemdCgroup)
+sudo mkdir -p /etc/containerd
+sudo containerd config default | sudo tee /etc/containerd/config.toml > /dev/null
+
+# Enable SystemdCgroup for proper cgroup management
+sudo sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
+
+# Restart containerd with new configuration
+sudo systemctl restart containerd
+
+# Load required kernel modules
+sudo modprobe overlay
+sudo modprobe br_netfilter
+
+# Setup required sysctl params
+sudo tee /etc/sysctl.d/99-kubernetes-cri.conf > /dev/null <<EOF
+net.bridge.bridge-nf-call-iptables  = 1
+net.ipv4.ip_forward                 = 1
+net.bridge.bridge-nf-call-ip6tables = 1
 EOF
 
-# Restart Docker with new configuration
-sudo systemctl daemon-reload
-sudo systemctl restart docker
-sudo systemctl enable docker
-
-# Add core user to docker group (if not already added)
-sudo usermod -aG docker core
+# Apply sysctl params without reboot
+sudo sysctl --system
 
 # 2. Download and install Kubernetes binaries
 log "Installing Kubernetes binaries..."
@@ -66,31 +73,7 @@ sudo curl -L --fail --retry 3 "https://github.com/containernetworking/plugins/re
 # Ensure /opt/bin is in PATH for all users
 echo 'export PATH=$PATH:/opt/bin' | sudo tee -a /etc/profile
 
-# 3. Configure kernel modules for Kubernetes networking
-log "Configuring kernel modules..."
-sudo mkdir -p /etc/modules-load.d
-sudo tee /etc/modules-load.d/k8s.conf > /dev/null <<EOF
-overlay
-br_netfilter
-EOF
-
-# Load modules immediately
-sudo modprobe overlay
-sudo modprobe br_netfilter
-
-# 4. Configure sysctl parameters for Kubernetes
-log "Configuring sysctl parameters..."
-sudo mkdir -p /etc/sysctl.d
-sudo tee /etc/sysctl.d/k8s.conf > /dev/null <<EOF
-net.bridge.bridge-nf-call-iptables  = 1
-net.bridge.bridge-nf-call-ip6tables = 1
-net.ipv4.ip_forward                 = 1
-EOF
-
-# Apply sysctl params immediately
-sudo sysctl --system
-
-# 5. Create kubelet systemd service
+# 3. Configure kubelet service for containerd
 log "Creating kubelet systemd service..."
 sudo mkdir -p /etc/systemd/system/
 sudo tee /etc/systemd/system/kubelet.service > /dev/null <<EOF
@@ -116,29 +99,27 @@ sudo tee /etc/systemd/system/kubelet.service.d/10-kubeadm.conf > /dev/null <<EOF
 [Service]
 Environment="KUBELET_KUBECONFIG_ARGS=--bootstrap-kubeconfig=/etc/kubernetes/bootstrap-kubelet.conf --kubeconfig=/etc/kubernetes/kubelet.conf"
 Environment="KUBELET_CONFIG_ARGS=--config=/var/lib/kubelet/config.yaml"
-Environment="KUBELET_SYSTEM_PODS_ARGS=--pod-manifest-path=/etc/kubernetes/manifests --allow-privileged=true"
-Environment="KUBELET_NETWORK_ARGS=--network-plugin=cni --cni-conf-dir=/etc/cni/net.d --cni-bin-dir=/opt/cni/bin"
+Environment="KUBELET_SYSTEM_PODS_ARGS=--pod-manifest-path=/etc/kubernetes/manifests"
 Environment="KUBELET_DNS_ARGS=--cluster-dns=10.96.0.10 --cluster-domain=cluster.local"
 Environment="KUBELET_AUTHZ_ARGS=--authorization-mode=Webhook --client-ca-file=/etc/kubernetes/pki/ca.crt"
-Environment="KUBELET_CADVISOR_ARGS=--cadvisor-port=0"
 Environment="KUBELET_CERTIFICATE_ARGS=--rotate-certificates=true --cert-dir=/var/lib/kubelet/pki"
-Environment="KUBELET_EXTRA_ARGS=--container-runtime-endpoint=unix:///var/run/containerd/containerd.sock --pod-infra-container-image=registry.k8s.io/pause:3.9"
+Environment="KUBELET_EXTRA_ARGS=--container-runtime-endpoint=unix:///run/containerd/containerd.sock --container-runtime=remote"
 ExecStart=
-ExecStart=/opt/bin/kubelet \$KUBELET_KUBECONFIG_ARGS \$KUBELET_CONFIG_ARGS \$KUBELET_SYSTEM_PODS_ARGS \$KUBELET_NETWORK_ARGS \$KUBELET_DNS_ARGS \$KUBELET_AUTHZ_ARGS \$KUBELET_CADVISOR_ARGS \$KUBELET_CERTIFICATE_ARGS \$KUBELET_EXTRA_ARGS
+ExecStart=/opt/bin/kubelet \$KUBELET_KUBECONFIG_ARGS \$KUBELET_CONFIG_ARGS \$KUBELET_SYSTEM_PODS_ARGS \$KUBELET_DNS_ARGS \$KUBELET_AUTHZ_ARGS \$KUBELET_CERTIFICATE_ARGS \$KUBELET_EXTRA_ARGS
 EOF
 
-# 6. Create required directories
+# 4. Create required directories
 log "Creating Kubernetes directories..."
 sudo mkdir -p /etc/kubernetes/pki
 sudo mkdir -p /etc/kubernetes/manifests
 sudo mkdir -p /var/lib/kubelet/pki
 sudo mkdir -p /etc/cni/net.d
 
-# 7. Enable kubelet service (but don't start - will start during cluster initialization)
+# 5. Enable kubelet service (but don't start - will start during cluster initialization)
 sudo systemctl daemon-reload
 sudo systemctl enable kubelet
 
-# 8. Disable swap permanently
+# 6. Disable swap permanently
 log "Disabling swap..."
 sudo swapoff -a
 
