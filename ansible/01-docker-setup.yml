@@ -1,0 +1,61 @@
+---
+- name: Setup Docker container runtime on Flatcar Linux
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Check if Docker is already active
+      raw: systemctl is-active docker
+      register: docker_status
+      ignore_errors: true
+      
+    - name: Display current Docker status
+      debug:
+        msg: "Docker status: {{ docker_status.stdout.strip() if docker_status.stdout else 'inactive' }}"
+        
+    - name: Start and enable Docker service
+      raw: sudo systemctl start docker && sudo systemctl enable docker
+      when: docker_status.stdout.strip() != "active"
+      
+    - name: Add core user to docker group for non-sudo access
+      raw: sudo usermod -aG docker core
+      
+    - name: Verify Docker installation and version
+      raw: docker --version && docker info --format '{{.ServerVersion}}'
+      register: docker_info
+      
+    - name: Display Docker information
+      debug:
+        msg: "{{ docker_info.stdout_lines }}"
+        
+    - name: Test Docker functionality with hello-world
+      raw: docker run --rm hello-world
+      register: docker_test
+      
+    - name: Display Docker test results
+      debug:
+        msg: "Docker test successful: {{ 'hello-world' in docker_test.stdout }}"
+        
+    - name: Configure Docker daemon for Kubernetes
+      raw: |
+        sudo mkdir -p /etc/docker
+        sudo tee /etc/docker/daemon.json <<EOF
+        {
+          "exec-opts": ["native.cgroupdriver=systemd"],
+          "log-driver": "json-file",
+          "log-opts": {
+            "max-size": "100m"
+          },
+          "storage-driver": "overlay2"
+        }
+        EOF
+      
+    - name: Restart Docker with new configuration
+      raw: sudo systemctl daemon-reload && sudo systemctl restart docker
+      
+    - name: Verify Docker is running with correct configuration
+      raw: docker info | grep -E "Cgroup Driver|Storage Driver"
+      register: docker_config
+      
+    - name: Display Docker configuration
+      debug:
+        msg: "{{ docker_config.stdout_lines }}"
