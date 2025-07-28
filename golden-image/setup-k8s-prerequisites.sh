@@ -1,8 +1,5 @@
 #!/bin/bash
-# Flatcar Kubernetes Golden# Download and install Kubernetes binaries
-log "Installing Kubernetes binaries..."
-K8S_VERSION="v1.33.3"
-CNI_VERSION="v1.3.0"ge Setup
+# Flatcar Kubernetes Golden Image Setup
 # This script configures a Flatcar Linux VM for Kubernetes
 
 set -e
@@ -42,7 +39,7 @@ sudo usermod -aG docker core
 
 # 2. Download and install Kubernetes binaries
 log "Installing Kubernetes binaries..."
-K8S_VERSION="v1.28.2"
+K8S_VERSION="v1.33.3"
 CNI_VERSION="v1.3.0"
 
 # Create directories
