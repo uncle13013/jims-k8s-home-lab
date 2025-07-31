@@ -1,0 +1,139 @@
+{
+  "ignition": {
+    "version": "3.3.0"
+  },
+  "passwd": {
+    "users": [
+      {
+        "groups": [
+          "docker",
+          "sudo"
+        ],
+        "name": "core"
+      }
+    ]
+  },
+  "storage": {
+    "directories": [
+      {
+        "path": "/etc/kubernetes",
+        "mode": 493
+      },
+      {
+        "path": "/etc/kubernetes/pki",
+        "mode": 493
+      },
+      {
+        "path": "/etc/kubernetes/manifests",
+        "mode": 493
+      },
+      {
+        "path": "/var/lib/kubelet",
+        "mode": 493
+      },
+      {
+        "path": "/var/lib/kubelet/pki",
+        "mode": 493
+      },
+      {
+        "path": "/etc/cni/net.d",
+        "mode": 493
+      },
+      {
+        "path": "/opt/cni/bin",
+        "mode": 493
+      },
+      {
+        "path": "/opt/bin",
+        "mode": 493
+      }
+    ],
+    "files": [
+      {
+        "path": "/etc/docker/daemon.json",
+        "contents": {
+          "compression": "gzip",
+          "source": "data:;base64,H4sIAAAAAAAC/0yNwQ6CMAyG73uKpmdnUG8kPonxUKGQmUHJOhfQ8O5mgxiv/b9+38cAIM/cWJmiYg03HCm6xMemD/Ka2uASh6suGnlo8X7IvJfebgPWgE+V0XbOM/7G3ZXlADjQbNW9OcOnqhoKt9/LXw14QQOwFoFGCdTzX0ESB0/LeQu4KdLDcw505JXNar4BAAD//2M2AYvGAAAA"
+        },
+        "mode": 420
+      },
+      {
+        "path": "/etc/modules-load.d/k8s.conf",
+        "contents": {
+          "compression": "",
+          "source": "data:,overlay%0Abr_netfilter%0A"
+        },
+        "mode": 420
+      },
+      {
+        "path": "/etc/sysctl.d/k8s.conf",
+        "contents": {
+          "compression": "gzip",
+          "source": "data:;base64,H4sIAAAAAAAC/8pLLdFLKspMSU+FUrp5abrJiTk5upkFJYlJOanFCgq2CoZc+NSZQRXC1GUWlJnoZRbEp+UXlScWpSigA5A6QAAAAP//GxhMCXgAAAA="
+        },
+        "mode": 420
+      },
+      {
+        "path": "/opt/download-k8s.sh",
+        "contents": {
+          "compression": "gzip",
+          "source": "data:;base64,H4sIAAAAAAAC/6ySwW4aMRCG736KqeFWbLeiqlClnkgOiIhIQco18trD7givvVrbgUB49yibRQHBkev4s//5xjP4oQryqtCxYhETCMwBGmpwpckxNp8sX57vn5azx8V//vpbjsdyzNl0MTuvyl+cMTRVAH4XNt4FbcmXMM8Fth4TRijI65YwSik5YwM4YtcYZnLrQMTlA/AqpSb+U8o6uZ5ESUG16FBHVMP9SXOHzsKRz1ula/v3j1rnAh0mDiKACk3qgL54swBt68sAbeubBZjkLgNMcoyZqg4Wfm6/j/a93ahvYtSzh7N5TxczaFwuyV+dc0mpyoU0oVYm+KTJd7+zCe2afKn6m0eFqGz/rhruT7bioIwn0cOikxKdlDjHZCp3HN4h6RbE9EvFePrUAbHdHXfqyo4A+Zi0c2ghZmMwxlV27o2zjwAAAP//PaVaqtECAAA="
+        },
+        "mode": 493
+      },
+      {
+        "path": "/etc/systemd/system/kubelet.service",
+        "contents": {
+          "compression": "gzip",
+          "source": "data:;base64,H4sIAAAAAAAC/3SOsU7DMBRFd39FfqB1WSt5KCpDBWIgIIYog+Ncmqc4z5F909K/R4ooG/M5V/c0HypszRElZJkpSd24dIjgvnofUD0vHbKCKNVr6lEdzlCaYwrLBKVfBwM5l72145+7lWT7FIod0gRrPr2yOAWvKY+bpFEUW/p8Bs3hi8j/MNPUyBcJaM3TN0JNn+lsmmk7Ufvbad5QVuDj1d+KWa0XmYQnJfLFR7e7OzWCe9gZ05y00MfYrmnoH29uWiJlsxTk+/tPAAAA//9E+p9lGwEAAA=="
+        },
+        "mode": 420
+      },
+      {
+        "path": "/etc/systemd/system/kubelet.service.d/10-kubeadm.conf",
+        "contents": {
+          "compression": "gzip",
+          "source": "data:;base64,H4sIAAAAAAAC/3xT3W6bTBC9z1NY0Xe7i6NPqppIXLgJSa20cWVI0x9V1rKM7REwi2YHJ+nTV+BiiBN6BTtn9pz5OfszBt6hhV8nEe2QHZVAEp7e3n+IPkXJqvleLu6u5zer2fImDpVKnRMvbCqV1ylYR2vchAGIDZozEwj44GVSAaKbxIn6151h5unb1byspOPZGQ4KTDuCYB/Xz6YsRnji73ESfV59WVzFHVnlMlUawjV4UZWR7av6OtRPlDJF4R5VxbjDAjaQhcI1jIjdRcnDYnnbCRHIo+NcVUW9QQot4UQpS9i2ozLkvbAlDAhEZ3/RFGkPukpaMEUaEby6O3Rli9oLsMrIh2dTff5OT/XZdDIAXGmaKvZHXThrxoY2u08+/uiITS1bx/jbCDpSpcsgfIB061zekiOQKGvUGgt4Ncgqx8AabVnG1jy7+jqPF8tDFybboXesKscSTsduRctkfj2/nCVRd5GdGAFlgQXXaI2AbzfV1Ags+4Ee26fKcUQh+pYsZwP3iUECVlyTYAkKKKsckoQ14dNFELTMXFNwSM0Gv9o72wyrMR7Sms2AEUuzgZBhg174WefvvUYXVKb2cPG/Pj89iZ7AxmJYwsFva40Uqetk8t/IK+6BN4PHr6NHhlbuo53f+khvlYHUcKmD8NHWeqSf9smfAAAA//9f/K0QpQQAAA=="
+        },
+        "mode": 420
+      },
+      {
+        "path": "/etc/profile.d/kubernetes.sh",
+        "contents": {
+          "compression": "",
+          "source": "data:,export%20PATH%3D%24PATH%3A%2Fopt%2Fbin%0A"
+        },
+        "mode": 420
+      }
+    ]
+  },
+  "systemd": {
+    "units": [
+      {
+        "enabled": true,
+        "name": "containerd.service"
+      },
+      {
+        "enabled": true,
+        "name": "docker.service"
+      },
+      {
+        "contents": "[Unit]\nDescription=Download Kubernetes Binaries\nWants=network-online.target\nAfter=network-online.target\nConditionPathExists=!/opt/bin/kubelet\n\n[Service]\nType=oneshot\nExecStart=/opt/download-k8s.sh\nRemainAfterExit=true\n\n[Install]\nWantedBy=multi-user.target\n",
+        "enabled": true,
+        "name": "download-k8s.service"
+      },
+      {
+        "enabled": true,
+        "name": "kubelet.service"
+      },
+      {
+        "enabled": true,
+        "name": "systemd-modules-load.service"
+      },
+      {
+        "enabled": true,
+        "name": "systemd-sysctl.service"
+      }
+    ]
+  }
+}

@@ -1,0 +1,136 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: populate-binary-repo
+  namespace: k8s-binary-repo
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: downloader
+        image: curlimages/curl:8.4.0
+        command: ["/bin/sh"]
+        args:
+          - -c
+          - |
+            set -e
+            echo "Populating Kubernetes binary repository..."
+            
+            # Versions to download
+            K8S_VERSION="v1.28.2"
+            CNI_VERSION="v1.3.0"
+            
+            # Create directory structure
+            mkdir -p /binaries/kubernetes/${K8S_VERSION}
+            mkdir -p /binaries/cni/${CNI_VERSION}
+            
+            cd /binaries
+            
+            echo "Downloading Kubernetes ${K8S_VERSION} binaries..."
+            
+            # Download Kubernetes binaries
+            curl -L "https://dl.k8s.io/release/${K8S_VERSION}/bin/linux/amd64/kubelet" \
+                 -o kubernetes/${K8S_VERSION}/kubelet
+            curl -L "https://dl.k8s.io/release/${K8S_VERSION}/bin/linux/amd64/kubeadm" \
+                 -o kubernetes/${K8S_VERSION}/kubeadm
+            curl -L "https://dl.k8s.io/release/${K8S_VERSION}/bin/linux/amd64/kubectl" \
+                 -o kubernetes/${K8S_VERSION}/kubectl
+            
+            echo "Downloading CNI plugins ${CNI_VERSION}..."
+            curl -L "https://github.com/containernetworking/plugins/releases/download/${CNI_VERSION}/cni-plugins-linux-amd64-${CNI_VERSION}.tgz" \
+                 -o cni/${CNI_VERSION}/cni-plugins.tgz
+            
+            # Generate checksums
+            echo "Generating checksums..."
+            find . -type f -exec sha256sum {} \; > checksums.txt
+            
+            # Create version info
+            echo "Creating version manifest..."
+            cat > versions.json << EOF
+            {
+              "kubernetes": {
+                "version": "${K8S_VERSION}",
+                "binaries": [
+                  "kubelet",
+                  "kubeadm", 
+                  "kubectl"
+                ]
+              },
+              "cni": {
+                "version": "${CNI_VERSION}",
+                "archive": "cni-plugins.tgz"
+              },
+              "generated": "$(date -Iseconds)"
+            }
+            EOF
+            
+            # Create index.html for web browsing
+            cat > index.html << 'EOF'
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Kubernetes Binary Repository</title>
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 40px; }
+                    .header { background: #326ce5; color: white; padding: 20px; border-radius: 5px; }
+                    .section { margin: 20px 0; }
+                    .file-list { background: #f5f5f5; padding: 15px; border-radius: 5px; }
+                    code { background: #e8e8e8; padding: 2px 4px; border-radius: 3px; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1>🎯 Kubernetes Binary Repository</h1>
+                    <p>Self-hosted cluster binary repository for bootstrapping new nodes</p>
+                </div>
+                
+                <div class="section">
+                    <h2>📁 Available Binaries</h2>
+                    <div class="file-list">
+                        <strong>Kubernetes v1.28.2:</strong><br>
+                        • <a href="kubernetes/v1.28.2/kubelet">kubelet</a><br>
+                        • <a href="kubernetes/v1.28.2/kubeadm">kubeadm</a><br>
+                        • <a href="kubernetes/v1.28.2/kubectl">kubectl</a><br><br>
+                        
+                        <strong>CNI Plugins v1.3.0:</strong><br>
+                        • <a href="cni/v1.3.0/cni-plugins.tgz">cni-plugins.tgz</a><br><br>
+                        
+                        <strong>Verification:</strong><br>
+                        • <a href="checksums.txt">checksums.txt</a><br>
+                        • <a href="versions.json">versions.json</a>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h2>🚀 Usage</h2>
+                    <p>Download binaries for new node setup:</p>
+                    <pre><code># Download kubelet
+            curl -O http://k8s-binary-repo-service.k8s-binary-repo.svc.cluster.local/kubernetes/v1.28.2/kubelet
+            
+            # Verify checksum
+            curl -s http://k8s-binary-repo-service.k8s-binary-repo.svc.cluster.local/checksums.txt | grep kubelet</code></pre>
+                </div>
+            </body>
+            </html>
+            EOF
+            
+            echo "Binary repository populated successfully!"
+            echo "Files created:"
+            find . -type f | sort
+            
+        volumeMounts:
+        - name: binaries
+          mountPath: /binaries
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+      volumes:
+      - name: binaries
+        persistentVolumeClaim:
+          claimName: k8s-binaries-pvc

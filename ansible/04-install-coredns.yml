@@ -1,0 +1,172 @@
+---
+- name: Install CoreDNS for Kubernetes Cluster
+  hosts: masters
+  gather_facts: false
+  vars:
+    coredns_version: "1.11.1"
+  
+  tasks:
+    - name: Check if CoreDNS is already installed
+      raw: /opt/bin/kubectl get pods -n kube-system | grep coredns || echo "not_installed"
+      register: coredns_status
+      
+    - name: Display CoreDNS status
+      debug:
+        msg: "CoreDNS status: {{ coredns_status.stdout.strip() }}"
+        
+    - name: Create CoreDNS ConfigMap
+      raw: |
+        cat <<EOF | /opt/bin/kubectl apply -f -
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: coredns
+          namespace: kube-system
+        data:
+          Corefile: |
+            .:53 {
+                errors
+                health {
+                   lameduck 5s
+                }
+                ready
+                kubernetes cluster.local in-addr.arpa ip6.arpa {
+                   pods insecure
+                   fallthrough in-addr.arpa ip6.arpa
+                   ttl 30
+                }
+                prometheus :9153
+                forward . /etc/resolv.conf {
+                   max_concurrent 1000
+                }
+                cache 30
+                loop
+                reload
+                loadbalance
+            }
+        EOF
+      when: "'coredns' not in coredns_status.stdout"
+      
+    - name: Create CoreDNS Deployment
+      raw: |
+        cat <<EOF | /opt/bin/kubectl apply -f -
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: coredns
+          namespace: kube-system
+          labels:
+            k8s-app: kube-dns
+            kubernetes.io/name: "CoreDNS"
+        spec:
+          replicas: 2
+          selector:
+            matchLabels:
+              k8s-app: kube-dns
+          template:
+            metadata:
+              labels:
+                k8s-app: kube-dns
+            spec:
+              priorityClassName: system-cluster-critical
+              containers:
+              - name: coredns
+                image: coredns/coredns:{{ coredns_version }}
+                imagePullPolicy: IfNotPresent
+                resources:
+                  limits:
+                    memory: 170Mi
+                  requests:
+                    cpu: 100m
+                    memory: 70Mi
+                args: [ "-conf", "/etc/coredns/Corefile" ]
+                volumeMounts:
+                - name: config-volume
+                  mountPath: /etc/coredns
+                  readOnly: true
+                ports:
+                - containerPort: 53
+                  name: dns
+                  protocol: UDP
+                - containerPort: 53
+                  name: dns-tcp
+                  protocol: TCP
+                - containerPort: 9153
+                  name: metrics
+                  protocol: TCP
+                livenessProbe:
+                  httpGet:
+                    path: /health
+                    port: 8080
+                    scheme: HTTP
+                  initialDelaySeconds: 60
+                  timeoutSeconds: 5
+                  successThreshold: 1
+                  failureThreshold: 5
+                readinessProbe:
+                  httpGet:
+                    path: /ready
+                    port: 8181
+                    scheme: HTTP
+              dnsPolicy: Default
+              volumes:
+              - name: config-volume
+                configMap:
+                  name: coredns
+                  items:
+                  - key: Corefile
+                    path: Corefile
+        EOF
+      when: "'coredns' not in coredns_status.stdout"
+      
+    - name: Create CoreDNS Service
+      raw: |
+        cat <<EOF | /opt/bin/kubectl apply -f -
+        apiVersion: v1
+        kind: Service
+        metadata:
+          name: kube-dns
+          namespace: kube-system
+          labels:
+            k8s-app: kube-dns
+            kubernetes.io/cluster-service: "true"
+            kubernetes.io/name: "CoreDNS"
+        spec:
+          selector:
+            k8s-app: kube-dns
+          clusterIP: 10.96.0.10
+          ports:
+          - name: dns
+            port: 53
+            protocol: UDP
+          - name: dns-tcp
+            port: 53
+            protocol: TCP
+          - name: metrics
+            port: 9153
+            protocol: TCP
+        EOF
+      when: "'coredns' not in coredns_status.stdout"
+      
+    - name: Wait for CoreDNS pods to be ready
+      raw: /opt/bin/kubectl wait --for=condition=ready pod -l k8s-app=kube-dns -n kube-system --timeout=300s
+      when: "'coredns' not in coredns_status.stdout"
+      
+    - name: Verify CoreDNS installation
+      raw: /opt/bin/kubectl get pods -n kube-system | grep coredns
+      register: coredns_verification
+      
+    - name: Display CoreDNS verification
+      debug:
+        msg: "{{ coredns_verification.stdout_lines }}"
+        
+    - name: Test DNS resolution
+      raw: |
+        /opt/bin/kubectl run test-dns --image=busybox --rm -it --restart=Never -- nslookup kubernetes.default.svc.cluster.local
+      register: dns_test
+      ignore_errors: true
+      
+    - name: Display DNS test results
+      debug:
+        msg: "DNS test: {{ 'SUCCESS' if dns_test.rc == 0 else 'FAILED' }}"
+      when: dns_test.rc is defined 

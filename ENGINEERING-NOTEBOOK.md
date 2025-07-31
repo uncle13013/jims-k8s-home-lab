@@ -116,6 +116,134 @@ Toshiba (Always-On Infrastructure): master-1 (4GB), worker-5 (6GB)
 
 **Validation**: Successfully bridged across `Intel(R) Wi-Fi 6E AX211 160MHz` (HP Omen) and `wlp2s0` (Toshiba Satellite)
 
+### AD-006: Ignition/Butane Configuration over Shell Scripts
+**Date**: 2025-07-28  
+**Decision**: Use Flatcar's native Ignition/Butane configuration system instead of shell scripts for Kubernetes prerequisites
+
+**Context**:
+- Flatcar Linux uses declarative Ignition configuration on first boot
+- Shell scripts are imperative and can fail partially
+- Need consistent, reliable configuration across all cluster nodes
+- Butane provides human-readable YAML → Ignition JSON conversion
+
+**Technical Details**:
+```yaml
+# Butane configuration (kubernetes.bu)
+variant: flatcar
+version: 1.0.0
+storage:
+  files:
+    - path: /etc/docker/daemon.json
+      contents:
+        inline: |
+          {"exec-opts": ["native.cgroupdriver=systemd"]}
+systemd:
+  units:
+    - name: download-k8s.service
+      enabled: true
+```
+
+**Rationale**:
+- **Declarative vs Imperative**: Specify desired state, not steps to achieve it
+- **Atomic configuration**: All changes happen during first boot or fail completely
+- **Immutable approach**: Matches Flatcar's design philosophy
+- **Better validation**: Butane validates configuration before conversion
+- **Reduced complexity**: No need for error handling, retries, or state checking
+- **Consistency**: Same configuration guaranteed across all nodes
+
+**Trade-offs**:
+- ✅ **Reliability**: Atomic success/failure model
+- ✅ **Debugging**: Clear Ignition logs via `journalctl -u ignition-firstboot-complete`
+- ✅ **Validation**: Butane syntax checking before deployment
+- ✅ **Performance**: Runs once during first boot, not on every provisioning
+- ❌ **Learning curve**: Need to understand Ignition/Butane concepts
+- ❌ **Tooling**: Requires `butane` tool for YAML → JSON conversion
+
+**Implementation**:
+- `golden-image/kubernetes.bu`: Human-readable Butane configuration
+- `golden-image/kubernetes.ign`: Generated Ignition JSON (5KB)
+- `golden-image/convert-butane.sh`: Conversion script using butane v0.19.0
+- Vagrant integration: Copy `.ign` file and apply during provisioning
+
+**What Gets Configured**:
+1. **Container Runtime**: Docker daemon with systemd cgroup driver
+2. **Kubernetes Binaries**: kubelet, kubeadm, kubectl v1.28.2 + CNI plugins v1.3.0
+3. **System Configuration**: Kernel modules (overlay, br_netfilter), sysctl parameters
+4. **Service Setup**: Systemd services for kubelet, download automation
+5. **Directory Structure**: All required Kubernetes directories (`/etc/kubernetes`, `/var/lib/kubelet`)
+
+**Validation Criteria**:
+- Butane configuration validates without errors: `butane --strict < kubernetes.bu`
+- Generated Ignition JSON is valid and complete
+- All Kubernetes prerequisites installed correctly on first boot
+- Kubelet service configured and enabled (but not started until cluster join)
+
+### AD-007: Self-Hosted Binary Repository
+**Date**: 2025-07-28  
+**Decision**: Implement cluster-internal binary repository for Kubernetes components instead of external downloads
+
+**Context**:
+- Runtime downloads from internet are anti-pattern (non-deterministic, network dependency)
+- Container paradigm: everything should be baked into images
+- Home lab needs: reliable, fast, self-sustaining infrastructure
+- New nodes need binaries before they can join cluster (chicken-and-egg problem)
+
+**Solution Architecture**:
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   New Node      │    │  Cluster        │    │  Binary Repo    │
+│                 │    │                 │    │  (PV + Service) │
+│ 1. Boot         │───▶│ 2. Download     │───▶│ 3. Serve        │
+│ 2. Get binaries │    │    from cluster │    │    k8s binaries │
+│ 3. Join cluster │    │                 │    │    + checksums  │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+```
+
+**Implementation**:
+- **Persistent Volume**: 2GB storage for binaries (kubelet, kubeadm, kubectl, CNI plugins)
+- **Nginx Deployment**: 2 replicas serving HTTP with autoindex and health checks
+- **ClusterIP Service**: `k8s-binary-repo-service.k8s-binary-repo.svc.cluster.local`
+- **NodePort Service**: `192.168.0.244:30080` for bootstrap access
+- **Population Job**: Downloads and checksums binaries from upstream once
+
+**Download Fallback Logic**:
+```bash
+1. http://k8s-binary-repo-service.k8s-binary-repo.svc.cluster.local (preferred)
+2. http://192.168.0.244:30080 (master NodePort fallback) 
+3. http://192.168.0.245:30080 (worker NodePort fallback)
+4. https://dl.k8s.io/release/... (upstream emergency fallback)
+```
+
+**Rationale**:
+- **🔄 Self-sustaining**: Cluster provides for its own growth
+- **⚡ Performance**: Local network access (~1Gbps vs internet bandwidth)  
+- **🔒 Security**: SHA256 checksum verification, no external dependencies
+- **🏠 Reliability**: Multiple fallback mechanisms, works during internet outages
+- **📊 Observable**: Standard Kubernetes monitoring, logging, health checks
+- **🎯 Cloud-native**: Follows container paradigms within VM constraints
+
+**Trade-offs**:
+- ✅ **Deterministic**: Same binaries for all nodes, version controlled
+- ✅ **Fast bootstrap**: ~10-30 seconds vs 2-3 minutes external download
+- ✅ **Offline capable**: Works without internet after initial setup
+- ✅ **Scalable**: Supports unlimited new nodes from cluster storage
+- ❌ **Complexity**: Requires initial manual bootstrap for first node
+- ❌ **Storage overhead**: 2GB persistent volume for binaries
+- ❌ **Update process**: Need to run populate job for version updates
+
+**Bootstrap Process**:
+1. **First node**: Manual setup using upstream binaries (one-time)
+2. **Deploy repository**: Apply Kubernetes manifests to running cluster
+3. **Populate binaries**: Run job to download and checksum binaries
+4. **Scale cluster**: All subsequent nodes use cluster repository
+
+**Validation Criteria**:
+- Repository serves binaries with 99.9% availability
+- New nodes complete binary download in <60 seconds
+- Checksum verification passes for all downloaded binaries  
+- Fallback mechanisms work when primary service unavailable
+- Repository survives pod restarts and node failures
+
 ### AD-002: Flatcar Linux over Ubuntu/CentOS
 **Date**: 2025-07-16  
 **Decision**: Use Flatcar Linux for all Kubernetes nodes

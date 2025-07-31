@@ -41,9 +41,15 @@ Vagrant.configure("2") do |config|
       vb.customize ['storageattach', :id, '--storagectl', 'IDE Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', './master-1-disk.vdi']
     end
     
-    # Temporarily disable provisioning to test basic boot
-    # master1.vm.provision "file", source: "../provisioning/master-cloud-init.yml", destination: "/tmp/cloud-init.yml"
-    # master1.vm.provision "shell", path: "../provisioning/setup-flatcar.sh", args: ["master"]
+    # Use Ignition for Flatcar configuration
+    master1.vm.provision "file", 
+      source: "../../golden-image/kubernetes.ign", 
+      destination: "/tmp/kubernetes.ign"
+    
+    # Apply Ignition configuration (this is a workaround since Vagrant doesn't natively support Ignition)
+    master1.vm.provision "shell", 
+      path: "../../golden-image/setup-k8s-prerequisites.sh",
+      privileged: false
   end
 
   # Worker Node 5 (Heavy-duty Always-On Worker)
@@ -61,8 +67,14 @@ Vagrant.configure("2") do |config|
       vb.customize ['storageattach', :id, '--storagectl', 'IDE Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', './worker-5-disk.vdi']
     end
     
-    # Temporarily disable provisioning to test basic boot
-    # worker5.vm.provision "file", source: "../provisioning/worker-cloud-init.yml", destination: "/tmp/cloud-init.yml"
-    # worker5.vm.provision "shell", path: "../provisioning/setup-flatcar.sh", args: ["worker"]
+    # Use Ignition for Flatcar configuration
+    worker5.vm.provision "file", 
+      source: "../../golden-image/kubernetes.ign", 
+      destination: "/tmp/kubernetes.ign"
+    
+    # Apply Ignition configuration
+    worker5.vm.provision "shell", 
+      path: "../../golden-image/setup-k8s-prerequisites.sh",
+      privileged: false
   end
 end
