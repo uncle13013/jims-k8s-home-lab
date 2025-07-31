@@ -1,0 +1,132 @@
+---
+- name: Test Kubernetes Networking
+  hosts: masters
+  gather_facts: false
+  tasks:
+    - name: Create test namespace
+      raw: /opt/bin/kubectl create namespace networking-test --dry-run=client -o yaml | /opt/bin/kubectl apply -f -
+      
+    - name: Deploy test nginx pod
+      raw: |
+        cat <<EOF | /opt/bin/kubectl apply -f -
+        apiVersion: v1
+        kind: Pod
+        metadata:
+          name: nginx-test
+          namespace: networking-test
+        spec:
+          containers:
+          - name: nginx
+            image: nginx:alpine
+            ports:
+            - containerPort: 80
+        EOF
+        
+    - name: Deploy test busybox pod for connectivity testing
+      raw: |
+        cat <<EOF | /opt/bin/kubectl apply -f -
+        apiVersion: v1
+        kind: Pod
+        metadata:
+          name: busybox-test
+          namespace: networking-test
+        spec:
+          containers:
+          - name: busybox
+            image: busybox:1.35
+            command:
+            - sleep
+            - "3600"
+        EOF
+        
+    - name: Wait for pods to be ready
+      raw: /opt/bin/kubectl wait --for=condition=ready pod -n networking-test --timeout=120s
+      
+    - name: Test pod-to-pod connectivity
+      raw: |
+        /opt/bin/kubectl exec -n networking-test busybox-test -- wget -qO- http://nginx-test
+      register: connectivity_test
+      ignore_errors: true
+      
+    - name: Display connectivity test results
+      debug:
+        msg: "Pod-to-pod connectivity: {{ 'SUCCESS' if connectivity_test.rc == 0 else 'FAILED' }}"
+        
+    - name: Test DNS resolution
+      raw: |
+        /opt/bin/kubectl exec -n networking-test busybox-test -- nslookup kubernetes.default.svc.cluster.local
+      register: dns_test
+      ignore_errors: true
+      
+    - name: Display DNS test results
+      debug:
+        msg: "DNS resolution: {{ 'SUCCESS' if dns_test.rc == 0 else 'FAILED' }}"
+        
+    - name: Test service connectivity
+      raw: |
+        cat <<EOF | /opt/bin/kubectl apply -f -
+        apiVersion: v1
+        kind: Service
+        metadata:
+          name: nginx-service
+          namespace: networking-test
+        spec:
+          selector:
+            app: nginx
+          ports:
+          - port: 80
+            targetPort: 80
+        EOF
+        
+    - name: Update nginx pod with label
+      raw: /opt/bin/kubectl label pod nginx-test -n networking-test app=nginx
+      
+    - name: Test service connectivity
+      raw: |
+        /opt/bin/kubectl exec -n networking-test busybox-test -- wget -qO- http://nginx-service
+      register: service_test
+      ignore_errors: true
+      
+    - name: Display service test results
+      debug:
+        msg: "Service connectivity: {{ 'SUCCESS' if service_test.rc == 0 else 'FAILED' }}"
+        
+    - name: Test cross-node connectivity
+      raw: |
+        /opt/bin/kubectl get nodes -o wide
+      register: nodes_info
+      
+    - name: Display nodes information
+      debug:
+        msg: "{{ nodes_info.stdout_lines }}"
+        
+    - name: Check Calico network policies
+      raw: /opt/bin/kubectl get networkpolicies -A
+      register: network_policies
+      
+    - name: Display network policies
+      debug:
+        msg: "{{ network_policies.stdout_lines }}"
+        
+    - name: Test external connectivity
+      raw: |
+        /opt/bin/kubectl exec -n networking-test busybox-test -- wget -qO- http://httpbin.org/ip
+      register: external_test
+      ignore_errors: true
+      
+    - name: Display external connectivity test results
+      debug:
+        msg: "External connectivity: {{ 'SUCCESS' if external_test.rc == 0 else 'FAILED' }}"
+        
+    - name: Clean up test resources
+      raw: /opt/bin/kubectl delete namespace networking-test
+      ignore_errors: true
+      
+    - name: Display final status
+      raw: |
+        echo "=== NETWORKING TEST SUMMARY ==="
+        echo "Pod-to-pod connectivity: {{ 'SUCCESS' if connectivity_test.rc == 0 else 'FAILED' }}"
+        echo "DNS resolution: {{ 'SUCCESS' if dns_test.rc == 0 else 'FAILED' }}"
+        echo "Service connectivity: {{ 'SUCCESS' if service_test.rc == 0 else 'FAILED' }}"
+        echo "External connectivity: {{ 'SUCCESS' if external_test.rc == 0 else 'FAILED' }}"
+        echo "================================" 
