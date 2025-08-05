@@ -244,6 +244,72 @@ systemd:
 - Fallback mechanisms work when primary service unavailable
 - Repository survives pod restarts and node failures
 
+### AD-008: Ubuntu for Manual Kubernetes Learning Setup
+**Date**: 2025-08-01  
+**Decision**: Use Ubuntu 22.04 LTS for manual Kubernetes "the hard way" setup instead of Flatcar Linux
+
+**Context**:
+- Need to deeply understand Kubernetes inner workings and manual configuration
+- Flatcar Linux abstracts many system-level details through Ignition/Butane
+- Learning objective: Complete manual control over every component and configuration
+- Future goal: Return to Flatcar Linux after mastering manual setup
+
+**Learning Path Strategy**:
+```
+Phase 1: Ubuntu Manual Setup (Current)
+├── Manual certificate generation and management
+├── Manual systemd service configuration
+├── Manual networking and CNI setup
+├── Manual etcd cluster configuration
+├── Manual kubelet/kube-apiserver/kube-controller-manager/kube-scheduler setup
+└── Complete understanding of every configuration file and parameter
+
+Phase 2: Flatcar Linux Production Setup (Future)
+├── Apply learned knowledge to Ignition/Butane configuration
+├── Leverage Flatcar's security and immutability benefits
+├── Implement automated, declarative cluster management
+└── Production-ready, hardened cluster deployment
+```
+
+**Technical Rationale**:
+- **🔧 Full system access**: Traditional package management (apt) for easy component installation
+- **📝 Manual configuration**: Direct editing of systemd units, config files, and certificates
+- **🐛 Debugging capability**: Standard Linux tools and logs for troubleshooting
+- **📚 Learning visibility**: See exactly what each component does and how it's configured
+- **🔄 Iterative development**: Easy to modify, test, and refine configurations
+
+**Implementation Details**:
+- **OS**: Ubuntu 22.04 LTS (jammy64) with latest updates
+- **Architecture**: 2-node cluster (controller + worker) for simplicity
+- **Networking**: Private network (192.168.56.0/24) with static IPs
+- **SSH Access**: Pre-configured with host SSH keys for direct access
+- **Documentation**: Comprehensive progress tracking in `notes/progress.md`
+
+**Trade-offs**:
+- ✅ **Learning depth**: Complete visibility into Kubernetes internals
+- ✅ **Debugging ease**: Standard Linux troubleshooting tools and techniques
+- ✅ **Configuration control**: Manual control over every aspect of the cluster
+- ✅ **Iteration speed**: Fast modify-test cycles for learning
+- ❌ **Security**: Less hardened than Flatcar Linux (acceptable for learning)
+- ❌ **Production readiness**: Not suitable for production workloads
+- ❌ **Automation complexity**: Manual setup doesn't scale to multiple nodes
+- ❌ **Time investment**: Significant manual work required for each component
+
+**Success Criteria**:
+- Complete manual Kubernetes cluster setup from scratch
+- Deep understanding of certificate authority and PKI management
+- Mastery of systemd service configuration for Kubernetes components
+- Ability to troubleshoot and debug cluster issues at component level
+- Confidence to implement similar setup on Flatcar Linux using Ignition/Butane
+
+**Future Migration Path**:
+- Document all manual configurations and their purposes
+- Map manual configurations to equivalent Ignition/Butane syntax
+- Create automated Flatcar Linux deployment with learned best practices
+- Implement production-ready cluster with security and immutability benefits
+
+**Validation**: Successfully created 2-node Ubuntu cluster with SSH key pre-configuration and comprehensive documentation structure
+
 ### AD-002: Flatcar Linux over Ubuntu/CentOS
 **Date**: 2025-07-16  
 **Decision**: Use Flatcar Linux for all Kubernetes nodes
@@ -319,6 +385,188 @@ networkingMode=mirrored
 - ✅ **Simplified networking**: No port forwarding or NAT traversal
 - ✅ **Ansible compatibility**: Standard SSH connections work
 - ❌ **WSL2 dependency**: Requires Windows 11 22H2+ with mirrored networking
+
+### AD-009: Kind over Vagrant for Kubernetes Learning
+**Date**: 2025-08-01  
+**Decision**: Replace Vagrant-based VM setup with Kind (Kubernetes in Docker) for manual Kubernetes learning
+
+**Context**:
+- Vagrant setup became overly complex with WSL/VirtualBox integration issues
+- Multiple networking configurations, SSH key management, and cross-platform compatibility problems
+- Need for a simple, reliable environment to focus on Kubernetes learning
+- Modern container-native approaches are more appropriate for Kubernetes experimentation
+
+**Problem Statement**:
+```
+Vagrant Approach Issues:
+- WSL/VirtualBox integration failures
+- Complex networking configuration (private/bridged networks)
+- SSH key provisioning and permission issues
+- Cross-platform compatibility problems (Windows/WSL)
+- Time spent troubleshooting infrastructure instead of learning Kubernetes
+- Multiple configuration files and scripts for simple VM management
+```
+
+**Solution**: Use Kind (Kubernetes in Docker)
+```bash
+# Simple setup - just 2-3 commands
+kind create cluster --name k8s-learning
+kubectl cluster-info
+kubectl get nodes
+```
+
+**Technical Rationale**:
+- **🐳 Container-native**: Kubernetes runs in containers, not VMs
+- **⚡ Fast startup**: Seconds vs minutes for VM boot
+- **🔧 Simple management**: Single binary, minimal configuration
+- **🌐 No networking complexity**: Uses Docker's networking
+- **📚 Learning focused**: Industry standard for development
+- **🔄 Reproducible**: Easy to destroy and recreate clusters
+
+**Implementation Details**:
+- **Tool**: Kind (Kubernetes in Docker)
+- **Cluster Name**: k8s-learning
+- **Nodes**: Single-node cluster for simplicity
+- **Access**: Standard kubectl commands
+- **Storage**: Docker volumes for persistence
+- **Networking**: Docker bridge networking
+
+**Benefits**:
+- ✅ **Zero VM management**: No VirtualBox, no Vagrant, no networking issues
+- ✅ **Cross-platform**: Works identically on Windows, Mac, Linux
+- ✅ **Fast iteration**: Create/destroy clusters in seconds
+- ✅ **Industry standard**: Used by Kubernetes developers and CI/CD
+- ✅ **Learning focused**: Can focus on Kubernetes concepts, not infrastructure
+- ✅ **Production-like**: Real Kubernetes, not simplified versions
+
+**Trade-offs**:
+- ❌ **Not multi-node by default**: Single-node cluster (can be configured for multi-node)
+- ❌ **Docker dependency**: Requires Docker to be running
+- ❌ **Resource sharing**: Shares host resources with other containers
+- ✅ **Perfect for learning**: Matches the learning objectives perfectly
+- ✅ **Scalable**: Can add nodes later if needed
+
+**Migration Path**:
+1. **Remove Vagrant complexity**: Delete all Vagrantfiles, scripts, and networking configs
+2. **Install Kind**: Simple binary installation
+3. **Create cluster**: Single command setup
+4. **Focus on learning**: Proceed with "Kubernetes the Hard Way" guide
+5. **Iterate quickly**: Easy to recreate cluster for different experiments
+
+**Success Criteria**:
+- Cluster creation completes in <30 seconds
+- Standard kubectl commands work immediately
+- No networking or SSH configuration required
+- Can focus 100% on Kubernetes learning objectives
+- Easy to destroy and recreate for different experiments
+
+**Validation**: Successfully replaced complex Vagrant setup with simple Kind cluster in under 5 minutes
+
+### AD-011: Vanilla Ubuntu VMs with kubeadm for Deep Learning
+**Date**: 2025-08-01  
+**Decision**: Use two vanilla Ubuntu Server 24.04.2 VMs with kubeadm for comprehensive Kubernetes learning, before returning to Kind
+
+**Context**:
+- Kind provides excellent learning environment but abstracts many underlying details
+- Need to understand the complete manual process of setting up Kubernetes from scratch
+- Want to experience the full "Kubernetes the Hard Way" approach with real VMs
+- Learning objective: Master every step of cluster creation before using automated tools
+
+**Learning Progression Strategy**:
+```
+Phase 1: Manual VM Setup (Current)
+├── Two Ubuntu Server 24.04.2 VMs
+├── Static IP configuration (192.168.0.240, 192.168.0.241)
+├── Manual kubeadm installation and configuration
+├── Complete control plane setup
+├── Worker node joining process
+└── Full understanding of every component
+
+Phase 2: Kind for Iteration (Future)
+├── Apply learned knowledge to Kind configuration
+├── Rapid iteration and experimentation
+├── Multi-node cluster testing
+└── Development and CI/CD workflows
+
+Phase 3: Vagrant Automation (Optional)
+├── Apply manual knowledge to automated setup
+├── Infrastructure as Code implementation
+└── Reproducible cluster deployment
+```
+
+**Technical Implementation**:
+- **Master Node**: k8s-master (192.168.0.240) - Ubuntu Server 24.04.2
+- **Worker Node**: k8s-worker (192.168.0.241) - Ubuntu Server 24.04.2
+- **Access**: SSH aliases 'm' and 'w' for convenience
+- **Method**: kubeadm for cluster initialization
+- **Learning Focus**: Every step of the manual process
+
+**Rationale**:
+- **🔧 Complete Control**: Full visibility into every configuration step
+- **📚 Deep Understanding**: Master the underlying processes before automation
+- **🛠️ Real-world Skills**: Experience actual production-like setup
+- **🔄 Foundation Building**: Solid base for understanding Kind and other tools
+- **🎯 Learning Depth**: Understand what Kind abstracts away
+
+**Benefits**:
+- ✅ **Complete visibility**: See every configuration file and setting
+- ✅ **Real troubleshooting**: Experience actual VM networking and system issues
+- ✅ **Production-like**: Similar to real-world cluster deployments
+- ✅ **Transferable skills**: Knowledge applies to any Kubernetes setup
+- ✅ **Debugging mastery**: Understand what can go wrong and how to fix it
+
+**Trade-offs**:
+- ❌ **Time investment**: Manual setup takes longer than Kind
+- ❌ **Complexity**: More moving parts and potential failure points
+- ❌ **Resource usage**: Dedicated VMs vs shared containers
+- ✅ **Learning value**: Invaluable understanding of Kubernetes internals
+- ✅ **Future efficiency**: Faster debugging and configuration with Kind
+
+**Success Criteria**:
+- Complete manual kubeadm cluster setup from scratch
+- Deep understanding of etcd, kube-apiserver, kubelet configuration
+- Ability to troubleshoot and debug cluster issues at component level
+- Confidence to implement similar setup in any environment
+- Foundation for efficient use of Kind and other automation tools
+
+**Future Migration Path**:
+- Document all manual configurations and their purposes
+- Map manual processes to Kind configuration options
+- Create automated Vagrant setup with learned best practices
+- Implement production-ready clusters with security and reliability
+
+**Validation**: Successfully configured two Ubuntu Server VMs with static IPs and SSH aliases, ready for kubeadm cluster creation
+
+### AD-010: Single-Node Kind Cluster for Learning
+**Date**: 2025-08-01  
+**Decision**: Start with single-node Kind cluster instead of multi-node setup
+
+**Context**:
+- Learning objective is to understand Kubernetes components and manual configuration
+- Multi-node complexity can be added later after mastering basics
+- Single-node provides all necessary components for learning
+
+**Rationale**:
+- **🎯 Focus on components**: Master etcd, kube-apiserver, kubelet, etc. individually
+- **🔍 Easier debugging**: Single node makes troubleshooting simpler
+- **⚡ Faster setup**: No inter-node communication complexity
+- **📚 Better learning**: Can understand each component's role clearly
+- **🔄 Iteration speed**: Faster to recreate and experiment
+
+**Implementation**:
+```bash
+# Simple single-node cluster
+kind create cluster --name k8s-learning
+
+# Verify it's working
+kubectl cluster-info
+kubectl get nodes
+```
+
+**Future Enhancement**:
+- Can upgrade to multi-node cluster when ready
+- Kind supports multi-node clusters with simple configuration
+- Easy migration path as learning progresses
 
 ---
 

@@ -22,11 +22,16 @@ Vagrant.configure("2") do |config|
     vb.linked_clone = true
     # Enable nested virtualization for container runtimes
     vb.customize ["modifyvm", :id, "--nested-hw-virt", "on"]
-    # Use default paravirtualization (removing incorrect KVM setting)
+    # Use default paravirtualization
     vb.customize ["modifyvm", :id, "--paravirtprovider", "default"]
+    # Add additional VirtualBox optimizations
+    vb.customize ["modifyvm", :id, "--ioapic", "on"]
+    vb.customize ["modifyvm", :id, "--cpus", "2"]
+    vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+    vb.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
   end
 
-  # Master Node 1 (Control Plane - Always Available)
+  # Master Node 1
   config.vm.define "master-1" do |master1|
     master1.vm.hostname = "master-1"
     master1.vm.network "public_network", ip: "192.168.0.244", bridge: "wlp2s0"
@@ -41,25 +46,19 @@ Vagrant.configure("2") do |config|
       vb.customize ['storageattach', :id, '--storagectl', 'IDE Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', './master-1-disk.vdi']
     end
     
-    # Use Ignition for Flatcar configuration
-    master1.vm.provision "file", 
-      source: "../../golden-image/kubernetes.ign", 
-      destination: "/tmp/kubernetes.ign"
-    
-    # Apply Ignition configuration (this is a workaround since Vagrant doesn't natively support Ignition)
-    master1.vm.provision "shell", 
-      path: "../../golden-image/setup-k8s-prerequisites.sh",
-      privileged: false
+    # Temporarily disable provisioning to test basic boot
+    # master1.vm.provision "file", source: "../provisioning/master-cloud-init.yml", destination: "/tmp/cloud-init.yml"
+    # master1.vm.provision "shell", path: "../provisioning/setup-flatcar.sh", args: ["master"]
   end
 
-  # Worker Node 5 (Heavy-duty Always-On Worker)
+  # Worker Node 5
   config.vm.define "worker-5" do |worker5|
     worker5.vm.hostname = "worker-5"
     worker5.vm.network "public_network", ip: "192.168.0.245", bridge: "wlp2s0"
     
     worker5.vm.provider "virtualbox" do |vb|
       vb.name = "k8s-worker-5"
-      vb.memory = "6144"  # 6GB for heavy workloads
+      vb.memory = "2048"
       vb.cpus = 2
       unless File.exist?('./worker-5-disk.vdi')
         vb.customize ['createhd', '--filename', './worker-5-disk.vdi', '--size', 20 * 1024]
@@ -67,14 +66,8 @@ Vagrant.configure("2") do |config|
       vb.customize ['storageattach', :id, '--storagectl', 'IDE Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', './worker-5-disk.vdi']
     end
     
-    # Use Ignition for Flatcar configuration
-    worker5.vm.provision "file", 
-      source: "../../golden-image/kubernetes.ign", 
-      destination: "/tmp/kubernetes.ign"
-    
-    # Apply Ignition configuration
-    worker5.vm.provision "shell", 
-      path: "../../golden-image/setup-k8s-prerequisites.sh",
-      privileged: false
+    # Temporarily disable provisioning to test basic boot
+    # worker5.vm.provision "file", source: "../provisioning/worker-cloud-init.yml", destination: "/tmp/cloud-init.yml"
+    # worker5.vm.provision "shell", path: "../provisioning/setup-flatcar.sh", args: ["worker"]
   end
 end
