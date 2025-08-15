@@ -5,147 +5,123 @@ A production-ready Kubernetes cluster built across multiple machines using Infra
 
 ## 🏗️ Architecture Overview
 
-This is a **6-node Kubernetes cluster** running across two physical machines using Vagrant, VirtualBox, and Flatcar Linux. The setup showcases high availability, cross-machine networking, and Infrastructure as Code best practices.
+This is a **2-node Kubernetes cluster** running locally using VirtualBox with kubeadm and Calico CNI. The setup showcases high availability, local networking, and Infrastructure as Code best practices for CKA exam preparation.
 
 ### Current Infrastructure Status
-- ✅ **6-node Kubernetes cluster** fully deployed and operational
-- ✅ **Single master control plane** on always-available dedicated host
-- ✅ **Ansible automation** for cluster management and configuration
-- ✅ **Bridged networking** enabling direct LAN access to all nodes
-- ✅ **Infrastructure as Code** with version-controlled Vagrant configurations
+- ✅ **2-node Kubernetes cluster** fully deployed and operational
+- ✅ **Single master control plane** with dedicated worker node
+- ✅ **kubeadm cluster** with Calico CNI networking
+- ✅ **Local networking** enabling direct access to all nodes
+- ✅ **Ready for CKA exam study** with toy application deployments
 
-## 🖥️ Physical Infrastructure
+## 🖥️ Current Infrastructure
 
-### HP Omen Laptop (Mobile Development Host)
-- **Role**: Mobile Kubernetes development environment
-- **Nodes**: worker-1 (2GB), worker-2 (2GB), worker-3 (2GB), worker-4 (2GB)
-- **Network**: Intel Wi-Fi 6E AX211 160MHz adapter with bridged networking
-- **IPs**: 192.168.0.240-243
-
-### Toshiba Satellite S55 (Always-On Infrastructure Host)  
-- **Role**: Dedicated Kubernetes infrastructure and always-on services
-- **Nodes**: master-1 (4GB), worker-5 (6GB)
-- **Network**: wlp2s0 wireless adapter with bridged networking
-- **IPs**: 192.168.0.244-245
+### Local Development Environment
+- **Role**: Local Kubernetes development and CKA exam study environment
+- **Nodes**: master-1 (4GB), worker-1 (2GB)
+- **Network**: Local VirtualBox networking with Calico CNI
+- **IPs**: Local network range with direct access
 
 ### Network Topology
 ```
-LAN (192.168.0.0/24)
-├── HP Omen (Mobile Development)
-│   ├── worker-1  (192.168.0.240) - 2GB
-│   ├── worker-2  (192.168.0.241) - 2GB
-│   ├── worker-3  (192.168.0.242) - 2GB
-│   └── worker-4  (192.168.0.243) - 2GB
-└── Toshiba Satellite (Always-On Infrastructure)
-    ├── master-1  (192.168.0.244) - 4GB (Control Plane)
-    └── worker-5  (192.168.0.245) - 6GB (Heavy-duty Always-On)
+Local Network
+├── master-1  (Control Plane) - 4GB
+└── worker-1  (Worker Node) - 2GB
 ```
 
 ## 🛠️ Technology Stack
 
 ### Virtualization Platform
-- **Vagrant 2.4.7**: Infrastructure as Code VM orchestration
-- **VirtualBox 7.1.12**: Type-2 hypervisor with bridged networking support
-- **WSL2 Mirrored Networking**: Direct LAN access from Windows Subsystem for Linux
+- **VirtualBox**: Type-2 hypervisor with local networking support
+- **kubeadm**: Kubernetes cluster lifecycle management
+- **Calico CNI**: Advanced networking with policy support
+- **Local Development**: Optimized for single-machine Kubernetes study
 
 ### Operating System
-- **Flatcar Linux 4230.2.1**: Container-optimized, security-focused Linux distribution
-- **Immutable OS**: Updates via atomic transactions, perfect for Kubernetes
-- **systemd-networkd**: Modern networking stack with predictable interface names
+- **Linux**: Container-optimized, security-focused distribution
+- **systemd**: Modern system management with predictable interface names
+- **Container Runtime**: containerd with systemd cgroup driver
 
 ### Automation & Configuration
-- **Ansible 2.16.3**: Configuration management and orchestration
-- **Raw Module Strategy**: Custom approach for Flatcar's Python-free environment
-- **SSH Key Management**: Secure authentication with proper key permissions
+- **kubeadm**: Kubernetes cluster lifecycle management
+- **Calico CNI**: Advanced networking with policy support
+- **kubectl**: Command-line interface for cluster management
 
 ## 📁 Repository Structure
 
 ```
-├── vagrant-cluster/
-│   ├── hp-omen/
-│   │   └── Vagrantfile           # 4-node configuration for primary host
-│   └── toshiba-satellite/
-│       └── Vagrantfile           # 2-node configuration for secondary host
-├── ansible/
-│   ├── inventory.yml             # 6-node cluster inventory with SSH config
-│   ├── ansible.cfg              # Optimized Ansible configuration
-│   ├── flatcar-ping.yml         # Flatcar-compatible connectivity testing
-│   └── hello-world.yml          # Comprehensive system information gathering
+├── applications/                 # Toy applications for CKA exam study
+│   ├── infrastructure/          # Cluster architecture and management
+│   ├── workloads/               # Application deployment and scheduling
+│   ├── networking/              # Services, networking, and policies
+│   ├── storage/                 # Volume management and persistence
+│   └── troubleshooting/         # Debugging and problem resolution
 ├── ENGINEERING-NOTEBOOK.md      # Technical decisions and design rationale
 └── README.md                    # This file
 ```
+
 ## 🚀 Quick Start Guide
 
 ### Prerequisites
-- **Windows 11** with WSL2 (Ubuntu 22.04)
-- **VirtualBox 7.1.12+** installed on Windows
-- **Vagrant 2.4.7+** installed on Windows  
-- **Two machines** connected to the same LAN
-- **Ansible** installed in WSL2 environment
+- **Running 2-node Kubernetes cluster** with kubeadm and Calico CNI
+- **kubectl configured** and working
+- **Basic Kubernetes knowledge** for CKA exam preparation
 
-### Deployment Steps
+### Getting Started
 
-1. **Clone and setup the repository**:
+1. **Verify your cluster is running**:
    ```bash
-   git clone https://github.com/uncle13013/jims-k8s-home-lab.git
-   cd jims-k8s-home-lab
+   kubectl get nodes
+   kubectl get pods --all-namespaces
    ```
 
-2. **Deploy primary nodes (HP Omen)**:
+2. **Check cluster health**:
    ```bash
-   cd vagrant-cluster/hp-omen
-   vagrant up
+   kubectl cluster-info
+   kubectl get componentstatuses
    ```
 
-3. **Deploy secondary nodes (Toshiba Satellite)**:
-   ```bash
-   cd vagrant-cluster/toshiba-satellite  
-   vagrant up
-   ```
-
-4. **Verify cluster connectivity**:
-   ```bash
-   cd ../../ansible
-   ansible-playbook flatcar-ping.yml
-   ```
+3. **Start with Infrastructure Exercise 1** - Cluster Health Verification
 
 ### Expected Results
-- **6 nodes** running Flatcar Linux with direct LAN access
-- **All nodes accessible** via SSH from WSL2 environment
-- **Cluster ready** for Kubernetes installation and configuration
+- **2 nodes** running Kubernetes with Calico CNI
+- **All components healthy** and operational
+- **Cluster ready** for CKA exam study and practice
 
-## 🎯 Next Steps & Roadmap
+## 🎯 Current Focus: CKA Exam Preparation
 
-### Phase 1: Kubernetes Installation (In Progress)
-- [ ] Docker runtime activation across all nodes
-- [ ] Kubernetes components installation (kubeadm, kubelet, kubectl)
-- [ ] Single master control plane initialization
-- [ ] Worker node joining and cluster validation
+### Phase 1: Kubernetes Installation ✅
+- [x] Container runtime (containerd) running on all nodes
+- [x] Kubernetes components (kubeadm, kubelet, kubectl) installed
+- [x] Single master control plane initialized and running
+- [x] Worker node joined and cluster validated
+- [x] Calico CNI installed and configured
 
-### Phase 2: Networking & Storage
-- [ ] Container Network Interface (CNI) deployment
-- [ ] Persistent volume configuration
-- [ ] Load balancer and ingress setup
-- [ ] Cross-node communication validation
+### Phase 2: Toy Applications for CKA Study 🚧
+- [ ] **Basic Deployments**: nginx, busybox, and simple web applications
+- [ ] **Multi-tier Applications**: Frontend, backend, and database deployments
+- [ ] **Troubleshooting Scenarios**: Common CKA exam problems and solutions
+- [ ] **Resource Management**: CPU, memory, and storage allocation examples
+- [ ] **Networking**: Services, ingress, and network policies
+- [ ] **Security**: RBAC, security contexts, and pod security standards
+- [ ] **Storage**: Persistent volumes, storage classes, and dynamic provisioning
+- [ ] **Monitoring**: Basic monitoring and logging setup
 
-### Phase 3: Applications & Monitoring  
-- [ ] Monitoring stack (Prometheus, Grafana)
-- [ ] CI/CD pipeline integration
-- [ ] Sample application deployments
-- [ ] Security scanning and hardening
+### Phase 3: Advanced CKA Topics
+- [ ] **Cluster Maintenance**: Upgrades, backup, and disaster recovery
+- [ ] **Performance Tuning**: Resource optimization and troubleshooting
+- [ ] **Security Hardening**: Network policies, admission controllers
+- [ ] **Custom Resources**: CRDs and operators
+- [ ] **Multi-cluster Management**: Federation and multi-tenancy
 
 ## 📊 Resource Allocation
 
-| Node | Machine | Role | CPU | RAM | Disk | IP |
-|------|---------|------|-----|-----|------|----|
-| worker-1 | HP Omen | Worker | 2 | 2GB | 20GB | 192.168.0.240 |
-| worker-2 | HP Omen | Worker | 2 | 2GB | 20GB | 192.168.0.241 |
-| worker-3 | HP Omen | Worker | 2 | 2GB | 20GB | 192.168.0.242 |
-| worker-4 | HP Omen | Worker | 2 | 2GB | 20GB | 192.168.0.243 |
-| master-1 | Toshiba | Control Plane | 2 | 4GB | 20GB | 192.168.0.244 |
-| worker-5 | Toshiba | Heavy-duty Worker | 2 | 6GB | 20GB | 192.168.0.245 |
+| Node | Role | CPU | RAM | Disk | Purpose |
+|------|------|-----|-----|------|---------|
+| master-1 | Control Plane | 2 | 4GB | 20GB | Kubernetes API and control plane |
+| worker-1 | Worker | 2 | 2GB | 20GB | Application workloads and CKA practice |
 
-**Total Resources**: 12 vCPUs, 18GB RAM, 120GB Storage
+**Total Resources**: 4 vCPUs, 6GB RAM, 40GB Storage
 
 ## 🔧 Key Features
 
@@ -155,16 +131,16 @@ LAN (192.168.0.0/24)
 - **Reproducible deployments** across different environments
 - **Automated provisioning** with minimal manual intervention
 
-### High Availability Design
-- **Single master architecture** optimized for home lab reliability
-- **Always-available control plane** on dedicated stable host
-- **Static IP allocation** for predictable networking
-- **Cross-machine workload distribution** for resource optimization
+### CKA Exam Focus
+- **Real-world scenarios** with actual cluster deployments
+- **Troubleshooting practice** on live Kubernetes clusters
+- **Hands-on experience** with all major Kubernetes components
+- **Performance optimization** and resource management practice
 
 ### Security & Compliance
 - **Immutable OS** with Flatcar Linux
 - **SSH key-based authentication** with proper permissions
-- **Isolated networking** with bridged interfaces
+- **Local networking** with isolated interfaces
 - **Container runtime security** with systemd integration
 
 ### Operational Excellence
@@ -173,21 +149,53 @@ LAN (192.168.0.0/24)
 - **Scalable architecture** for additional nodes
 - **Documentation-driven** development approach
 
+## 🎓 CKA Study Applications
+
+### Basic Deployments
+- **nginx-deployment**: Simple web server with scaling examples
+- **busybox-deployment**: Lightweight container for testing
+- **hello-world**: Basic application deployment patterns
+
+### Multi-tier Applications
+- **web-app**: Frontend, backend, and database architecture
+- **api-gateway**: Service mesh and API management examples
+- **data-pipeline**: Batch processing and streaming applications
+
+### Troubleshooting Scenarios
+- **broken-pods**: Common pod startup issues
+- **network-issues**: Service connectivity problems
+- **resource-constraints**: CPU and memory limitations
+- **storage-problems**: Volume mounting and persistence issues
+
+### Advanced Topics
+- **custom-resources**: CRD development and usage
+- **operators**: Kubernetes operator patterns
+- **multi-cluster**: Federation and cluster management
+- **security-policies**: Pod security standards and network policies
+
 ## 🔗 Related Documentation
 
 - **[Engineering Notebook](./ENGINEERING-NOTEBOOK.md)**: Technical decisions, design rationale, and lessons learned
 - **[Vagrant Cluster Directory](./vagrant-cluster/)**: Infrastructure as Code configurations
 - **[Ansible Playbooks](./ansible/)**: Configuration management and automation scripts
+- **[Applications Directory](./applications/)**: CKA study applications and examples
 
 ## 📚 Learning Outcomes
 
 This project demonstrates proficiency in:
 
+### CKA Exam Preparation
+- **Real cluster experience** with actual deployments
+- **Troubleshooting practice** on live systems
+- **Performance optimization** and resource management
+- **Security configuration** and policy implementation
+- **Official curriculum coverage** based on [CNCF CKA Curriculum v1.33](https://github.com/cncf/curriculum/blob/master/CKA_Curriculum_v1.33.pdf)
+
 ### Infrastructure & Virtualization
-- **Multi-machine virtualization** with VirtualBox and Vagrant
-- **Cross-platform networking** between Windows and Linux environments
-- **Bridged networking configuration** for production-like setups
+- **Local virtualization** with VirtualBox and Vagrant
+- **Kubernetes cluster design** and implementation
 - **Resource management** and capacity planning
+- **Network configuration** and troubleshooting
 
 ### DevOps & Automation
 - **Infrastructure as Code** principles and implementation
@@ -201,31 +209,30 @@ This project demonstrates proficiency in:
 - **Container-optimized operating systems** and their trade-offs
 - **Network policy** and security considerations
 
-### System Administration
-- **SSH key management** and secure authentication
-- **Linux system administration** across different distributions
-- **Network troubleshooting** and configuration
-- **Performance monitoring** and resource optimization
+### CKA Exam Preparation
+- **Real cluster experience** with actual deployments
+- **Troubleshooting practice** on live systems
+- **Performance optimization** and resource management
+- **Security configuration** and policy implementation
 
 ---
 
 ## 🏛️ Legacy Infrastructure (Preserved for Reference)
 
-### Dell R610 Server (Retired)
-The project originally used a Dell R610 server but was migrated to the current laptop-based setup due to power consumption concerns. The Dell R610 documentation is preserved in the `dell-r610/` directory for reference.
+### Multi-Machine Setup (Previous Version)
+The project previously used a 6-node setup across two physical machines but has been simplified to a local 2-node setup for focused CKA exam study.
 
-**Key Achievements**:
-- ✅ **Automated KVM setup** with Ansible
-- ✅ **Wake-on-LAN configuration** for remote power management  
-- ✅ **Kali Linux VM** deployment with VNC access
-- ✅ **Base system provisioning** with dependency management
+**Previous Architecture**:
+- **HP Omen Laptop**: 4 worker nodes (2GB each)
+- **Toshiba Satellite**: 1 master (4GB) + 1 worker (6GB)
+- **Total**: 6 nodes, 12 vCPUs, 18GB RAM
 
-**Migration Rationale**:
-- **Power efficiency**: Laptops consume ~50W vs server ~300W
-- **Noise reduction**: Server fans were disruptive in home environment  
-- **Flexibility**: Laptop-based setup allows for mobile development
-- **Cost optimization**: Reduced electricity costs and heat generation
+**Simplification Rationale**:
+- **Focused learning**: Local setup allows for concentrated CKA study
+- **Resource efficiency**: Reduced resource consumption for development
+- **Faster iteration**: Quicker deployment and testing cycles
+- **Portability**: Easy to move between different development environments
 
 ---
 
-*This repository serves as a portfolio demonstration of Infrastructure as Code, DevOps automation, and Kubernetes expertise. The project emphasizes production-ready practices, comprehensive documentation, and operational excellence.*
+*This repository serves as a focused Kubernetes learning environment for CKA exam preparation, emphasizing hands-on practice with real cluster deployments, troubleshooting scenarios, and production-ready application patterns.*
