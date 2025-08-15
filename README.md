@@ -1,23 +1,23 @@
 
 # Jim's Kubernetes Home Lab
 
-A production-ready Kubernetes cluster built across multiple machines using Infrastructure as Code principles. This project demonstrates enterprise-grade virtualization, networking, and automation techniques in a home lab environment.
+A learning-focused Kubernetes cluster built for hands-on practice and CKA exam preparation. This project demonstrates the journey toward enterprise-grade practices through iterative implementation and real-world experimentation in a home lab environment.
 
 ## 🏗️ Architecture Overview
 
-This is a **2-node Kubernetes cluster** running locally using VirtualBox with kubeadm and Calico CNI. The setup showcases high availability, local networking, and Infrastructure as Code best practices for CKA exam preparation.
+This is a **2-node Kubernetes cluster** running locally using VirtualBox with kubeadm and Calico CNI. The setup provides a practical learning environment for understanding cluster architecture, networking, and operational practices as you work toward CKA exam mastery.
 
 ### Current Infrastructure Status
-- ✅ **2-node Kubernetes cluster** fully deployed and operational
+- ✅ **2-node Kubernetes cluster** running and operational
 - ✅ **Single master control plane** with dedicated worker node
 - ✅ **kubeadm cluster** with Calico CNI networking
 - ✅ **Local networking** enabling direct access to all nodes
-- ✅ **Ready for CKA exam study** with toy application deployments
+- ✅ **Ready for CKA exam study** with practical application deployments
 
 ## 🖥️ Current Infrastructure
 
 ### Local Development Environment
-- **Role**: Local Kubernetes development and CKA exam study environment
+- **Role**: Learning environment for Kubernetes practice and CKA exam preparation
 - **Nodes**: master-1 (4GB), worker-1 (2GB)
 - **Network**: Local VirtualBox networking with Calico CNI
 - **IPs**: Local network range with direct access
@@ -35,17 +35,17 @@ Local Network
 - **VirtualBox**: Type-2 hypervisor with local networking support
 - **kubeadm**: Kubernetes cluster lifecycle management
 - **Calico CNI**: Advanced networking with policy support
-- **Local Development**: Optimized for single-machine Kubernetes study
+- **Local Development**: Optimized for learning and experimentation
 
 ### Operating System
-- **Linux**: Container-optimized, security-focused distribution
+- **Linux**: Container-optimized distribution for learning
 - **systemd**: Modern system management with predictable interface names
 - **Container Runtime**: containerd with systemd cgroup driver
 
 ### Automation & Configuration
 - **kubeadm**: Kubernetes cluster lifecycle management
 - **Calico CNI**: Advanced networking with policy support
-- **kubectl**: Command-line interface for cluster management
+- **kubectl**: Command-line interface for cluster management and learning
 
 ## 📁 Repository Structure
 
@@ -86,7 +86,7 @@ Local Network
 ### Expected Results
 - **2 nodes** running Kubernetes with Calico CNI
 - **All components healthy** and operational
-- **Cluster ready** for CKA exam study and practice
+- **Cluster ready** for hands-on learning and CKA exam practice
 
 ## 🎯 Current Focus: CKA Exam Preparation
 
@@ -97,7 +97,7 @@ Local Network
 - [x] Worker node joined and cluster validated
 - [x] Calico CNI installed and configured
 
-### Phase 2: Toy Applications for CKA Study 🚧
+### Phase 2: Learning Applications for CKA Study 🚧
 - [ ] **Basic Deployments**: nginx, busybox, and simple web applications
 - [ ] **Multi-tier Applications**: Frontend, backend, and database deployments
 - [ ] **Troubleshooting Scenarios**: Common CKA exam problems and solutions
@@ -125,29 +125,29 @@ Local Network
 
 ## 🔧 Key Features
 
-### Infrastructure as Code
-- **Declarative configuration** with Vagrant and Ansible
-- **Version-controlled infrastructure** in Git
-- **Reproducible deployments** across different environments
-- **Automated provisioning** with minimal manual intervention
+### Learning-Focused Design
+- **Hands-on practice environment** for Kubernetes concepts
+- **Iterative implementation** of best practices
+- **Real-world experimentation** in a safe lab setting
+- **Progressive skill building** toward production readiness
 
 ### CKA Exam Focus
-- **Real-world scenarios** with actual cluster deployments
+- **Practical scenarios** with real cluster deployments
 - **Troubleshooting practice** on live Kubernetes clusters
 - **Hands-on experience** with all major Kubernetes components
 - **Performance optimization** and resource management practice
 
 ### Security & Compliance
-- **Immutable OS** with Flatcar Linux
-- **SSH key-based authentication** with proper permissions
+- **Container-optimized OS** for learning and practice
+- **Secure authentication** with proper permissions
 - **Local networking** with isolated interfaces
 - **Container runtime security** with systemd integration
 
 ### Operational Excellence
 - **Monitoring ready** with systemd and logging
-- **Ansible automation** for configuration management
+- **kubectl automation** for configuration management
 - **Scalable architecture** for additional nodes
-- **Documentation-driven** development approach
+- **Documentation-driven** learning approach
 
 ## 🎓 CKA Study Applications
 
@@ -176,8 +176,6 @@ Local Network
 ## 🔗 Related Documentation
 
 - **[Engineering Notebook](./ENGINEERING-NOTEBOOK.md)**: Technical decisions, design rationale, and lessons learned
-- **[Vagrant Cluster Directory](./vagrant-cluster/)**: Infrastructure as Code configurations
-- **[Ansible Playbooks](./ansible/)**: Configuration management and automation scripts
 - **[Applications Directory](./applications/)**: CKA study applications and examples
 
 ## 📚 Learning Outcomes
@@ -185,35 +183,29 @@ Local Network
 This project demonstrates proficiency in:
 
 ### CKA Exam Preparation
-- **Real cluster experience** with actual deployments
+- **Practical cluster experience** with real deployments
 - **Troubleshooting practice** on live systems
 - **Performance optimization** and resource management
 - **Security configuration** and policy implementation
 - **Official curriculum coverage** based on [CNCF CKA Curriculum v1.33](https://github.com/cncf/curriculum/blob/master/CKA_Curriculum_v1.33.pdf)
 
 ### Infrastructure & Virtualization
-- **Local virtualization** with VirtualBox and Vagrant
+- **Local virtualization** with VirtualBox
 - **Kubernetes cluster design** and implementation
 - **Resource management** and capacity planning
 - **Network configuration** and troubleshooting
 
 ### DevOps & Automation
 - **Infrastructure as Code** principles and implementation
-- **Configuration management** with Ansible in containerized environments
+- **Configuration management** with kubectl and manifests
 - **Version control** for infrastructure configurations
 - **Automated deployment** pipelines
 
 ### Kubernetes & Containerization
 - **Multi-node cluster architecture** design and implementation
-- **High availability** patterns for production workloads
+- **Learning environment** for production-ready patterns
 - **Container-optimized operating systems** and their trade-offs
 - **Network policy** and security considerations
-
-### CKA Exam Preparation
-- **Real cluster experience** with actual deployments
-- **Troubleshooting practice** on live systems
-- **Performance optimization** and resource management
-- **Security configuration** and policy implementation
 
 ---
 
@@ -229,10 +221,10 @@ The project previously used a 6-node setup across two physical machines but has 
 
 **Simplification Rationale**:
 - **Focused learning**: Local setup allows for concentrated CKA study
-- **Resource efficiency**: Reduced resource consumption for development
+- **Resource efficiency**: Reduced resource consumption for learning
 - **Faster iteration**: Quicker deployment and testing cycles
-- **Portability**: Easy to move between different development environments
+- **Portability**: Easy to move between different learning environments
 
 ---
 
-*This repository serves as a focused Kubernetes learning environment for CKA exam preparation, emphasizing hands-on practice with real cluster deployments, troubleshooting scenarios, and production-ready application patterns.*
+*This repository serves as a focused Kubernetes learning environment for CKA exam preparation, emphasizing hands-on practice with real cluster deployments, troubleshooting scenarios, and iterative learning toward production-ready patterns.*
